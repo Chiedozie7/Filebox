@@ -95,8 +95,42 @@ const resizeImage = async (inputPath, outputPath, width, height) => {
     };
 };
 
+const convertImage = async (inputPath, outputPath, format) => {
+    const image = sharp(inputPath);
+
+    switch (format) {
+        case "jpeg":
+            await image.jpeg().toFile(outputPath);
+            break;
+
+        case "png":
+            await image.png().toFile(outputPath);
+            break;
+
+        case "webp":
+            await image.webp().toFile(outputPath);
+            break;
+
+        case "avif":
+            await image.avif().toFile(outputPath);
+            break;
+
+        case "tiff":
+            await image.tiff().toFile(outputPath);
+            break;
+
+        case "gif":
+            await image.gif().toFile(outputPath);
+            break;
+
+        default:
+            throw new Error("Unsupported output format");
+    }
+};
+
 module.exports = {
     compressImage,
     resizeImage,
+    convertImage,
     getImageFormat
 };

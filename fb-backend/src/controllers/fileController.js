@@ -116,9 +116,63 @@ const resizeImage = async (req, res) => {
     }
 };
 
+const convertImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: "No file uploaded",
+            });
+        }
+
+        const format = req.body.format?.toLowerCase();
+
+        const supportedFormats = [
+            "jpeg",
+            "jpg",
+            "png",
+            "webp",
+            "avif",
+            "tiff",
+            "gif",
+        ];
+
+        if (!format || !supportedFormats.includes(format)) {
+            return res.status(400).json({
+                error: "Unsupported output format",
+            });
+        }
+
+        const outputFormat = format === "jpg" ? "jpeg" : format;
+        const outputExtension = format === "jpeg" ? "jpg" : format;
+
+        const outputName = `converted-${Date.now()}.${outputExtension}`;
+        const outputPath = path.join("uploads", outputName);
+
+        await imageService.convertImage(
+            req.file.path,
+            outputPath,
+            outputFormat
+        );
+
+        res.json({
+            message: "Image converted successfully",
+            original: req.file.filename,
+            converted: outputName,
+            format: outputFormat,
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "Failed to convert image",
+        });
+    }
+};
+
 module.exports = {
     uploadFile,
     getFiles,
     compressImage,
     resizeImage,
+    convertImage,
 };
