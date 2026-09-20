@@ -1,11 +1,11 @@
-const archiver = require("archiver");
+const { ZipArchive } = require("archiver");
 const fs = require("fs");
 const path = require("path");
 
 const createZip = (filePaths, outputPath) => {
     return new Promise((resolve, reject) => {
         const output = fs.createWriteStream(outputPath);
-        const archive = archiver("zip", { zlib: { level: 9 } });
+        const archive = new ZipArchive({ zlib: { level: 9 } });
 
         output.on("close", () => {
             resolve({ outputPath, totalBytes: archive.pointer() });
