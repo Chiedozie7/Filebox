@@ -188,6 +188,40 @@ const convertPdfToExcel = async (
                     )
                 );
             });
+
+            sheet.columns.forEach((column) => {
+                let longestLineLength = 0;
+
+                column.eachCell(
+                    { includeEmpty: true },
+                    (cell) => {
+                        const cellLines = String(
+                            cell.value ?? ""
+                        ).split(/\r?\n/);
+
+                        longestLineLength = Math.max(
+                            longestLineLength,
+                            ...cellLines.map(
+                                (line) => line.length
+                            )
+                        );
+
+                        cell.alignment = {
+                            ...cell.alignment,
+                            wrapText: true,
+                            vertical: "top",
+                        };
+                    }
+                );
+
+                column.width = Math.min(
+                    40,
+                    Math.max(
+                        10,
+                        longestLineLength + 2
+                    )
+                );
+            });
         });
     });
 
