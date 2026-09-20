@@ -5,15 +5,23 @@ const {
     getFiles,
     compressImage,
     resizeImage,
-    convertImage,
+    convertImage, 
     mergePDFs,
     splitPDF,
+    convertWordToPdf,
+    convertExcelToPdf,
+    downloadFile,
+    batchConvertImages,
 } = require("../controllers/fileController");
 
 const {
     convertPdfToWord,
     convertPdfToExcel,
 } = require("../controllers/pdfController");
+
+const {
+    extractTextFromImage,
+} = require("../controllers/ocrController");
 
 const router = express.Router();
 
@@ -44,6 +52,32 @@ router.post(
     upload.single("file"),
     convertPdfToExcel
 );
+router.post(
+    "/word/to-pdf",
+    upload.single("file"),
+    convertWordToPdf
+);
+
+router.post(
+    "/excel/to-pdf",
+    upload.single("file"),
+    convertExcelToPdf
+);
+
+router.post(
+    "/ocr/image",
+    upload.single("file"),
+    extractTextFromImage
+);
+
+router.post(
+    "/convert/batch",
+    upload.array("files", 20),
+    batchConvertImages
+);
+
+router.get("/download/:filename", downloadFile);
+
 router.get("/", getFiles);
 
 module.exports = router;

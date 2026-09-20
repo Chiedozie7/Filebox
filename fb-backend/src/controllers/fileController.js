@@ -1,8 +1,11 @@
 const fileService = require("../services/fileService");
 const path = require("path");
+const fs = require("fs");
 const imageService = require("../services/imageService");
 const pdfService = require("../services/pdfService");
-
+const wordService = require("../services/wordService");
+const excelService = require("../services/excelService");
+const zipService = require("../services/zipService");
 
 
 const uploadFile = async (req, res) => {
@@ -283,6 +286,173 @@ const splitPDF = async (req, res) => {
     }
 };
 
+
+const convertWordToPdf = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: "No Word document uploaded",
+            });
+        }
+
+        if (
+            path.extname(req.file.originalname)
+                .toLowerCase() !== ".docx"
+        ) {
+            return res.status(400).json({
+                error: "Uploaded file must be a DOCX document",
+            });
+        }
+
+        const outputDir = "uploads";
+
+        const result =
+            await wordService.convertWordToPdf(
+                req.file.path,
+                outputDir
+            );
+
+        res.json({
+            message:
+                "Word document converted to PDF successfully",
+            original: req.file.filename,
+            converted: path.basename(result.outputPath),
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "Failed to convert Word document to PDF",
+        });
+    }
+};
+
+const convertExcelToPdf = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: "No Excel document uploaded",
+            });
+        }
+
+        if (
+            path.extname(req.file.originalname)
+                .toLowerCase() !== ".xlsx"
+        ) {
+            return res.status(400).json({
+                error: "Uploaded file must be an XLSX document",
+            });
+        }
+
+        const outputDir = "uploads";
+
+        const result =
+            await excelService.convertExcelToPdf(
+                req.file.path,
+                outputDir
+            );
+
+        res.json({
+            message:
+                "Excel document converted to PDF successfully",
+            original: req.file.filename,
+            converted: path.basename(result.outputPath),
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "Failed to convert Excel document to PDF",
+        });
+    }
+};
+
+// --- New below ---
+
+const downloadFile = (req, res) => {
+    try {
+        // path.basename strips any directory traversal (../, absolute paths)
+        const filename = path.basename(req.params.filename);
+        const filePath = path.join("uploads", filename);
+
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({
+                error: "File not found",
+            });
+        }
+
+        res.download(filePath, filename);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Failed to download file",
+        });
+    }
+};
+
+const batchConvertImages = async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({
+                error: "No images uploaded",
+            });
+        }
+
+        const format = req.body.format?.toLowerCase();
+
+        const supportedFormats = [
+            "jpeg",
+            "jpg",
+            "png",
+            "webp",
+            "avif",
+            "tiff",
+            "gif",
+        ];
+
+        if (!format || !supportedFormats.includes(format)) {
+            return res.status(400).json({
+                error: "Unsupported output format",
+            });
+        }
+
+        const outputFormat = format === "jpg" ? "jpeg" : format;
+        const outputExtension = format === "jpeg" ? "jpg" : format;
+
+        const convertedPaths = [];
+
+        for (const file of req.files) {
+            const outputName =
+                `converted-${Date.now()}-${Math.round(Math.random() * 1e9)}.${outputExtension}`;
+            const outputPath = path.join("uploads", outputName);
+
+            await imageService.convertImage(
+                file.path,
+                outputPath,
+                outputFormat
+            );
+
+            convertedPaths.push(outputPath);
+        }
+
+        const zipName = `batch-${Date.now()}.zip`;
+        const zipPath = path.join("uploads", zipName);
+
+        await zipService.createZip(convertedPaths, zipPath);
+
+        res.json({
+            message: "Batch conversion completed",
+            filesConverted: convertedPaths.length,
+            zip: zipName,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Failed to batch convert images",
+        });
+    }
+};
+
 module.exports = {
     uploadFile,
     getFiles,
@@ -291,4 +461,8 @@ module.exports = {
     convertImage,
     mergePDFs,
     splitPDF,
+    convertWordToPdf,
+    convertExcelToPdf,
+    downloadFile,
+    batchConvertImages,
 };

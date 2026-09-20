@@ -1,0 +1,9 @@
+FILEFORGE DELIVERY NOTE
+Reference: LAGOS 2048
+Date: 19 September 2026
+Item: Solar panel kits
+Quantity: 24
+Unit price: 12500
+Total amount: 300000
+Deliver to: Marina warehouse
+Approved by: Ada Okafor

@@ -1,0 +1,177 @@
+{
+  "image_specs": [
+    [
+      "landscape.jpg",
+      1200,
+      800
+    ],
+    [
+      "transparent.png",
+      900,
+      600
+    ],
+    [
+      "portrait.webp",
+      640,
+      960
+    ],
+    [
+      "square.avif",
+      720,
+      720
+    ],
+    [
+      "wide.tiff",
+      1000,
+      500
+    ],
+    [
+      "palette.gif",
+      480,
+      320
+    ]
+  ],
+  "ocr_lines": [
+    "FILEFORGE DELIVERY NOTE",
+    "Reference: LAGOS 2048",
+    "Date: 19 September 2026",
+    "Item: Solar panel kits",
+    "Quantity: 24",
+    "Unit price: 12500",
+    "Total amount: 300000",
+    "Deliver to: Marina warehouse",
+    "Approved by: Ada Okafor"
+  ],
+  "docx_pages": 3,
+  "pdf_pages": {
+    "mixed-content.pdf": 3,
+    "table-ledger.pdf": 2,
+    "supplier-appendix.pdf": 1
+  },
+  "pdf_tables": [
+    [
+      [
+        "Product",
+        "Received",
+        "Dispatched",
+        "Balance"
+      ],
+      [
+        "Solar panel kits",
+        "120",
+        "96",
+        "24"
+      ],
+      [
+        "Battery packs",
+        "80",
+        "65",
+        "15"
+      ],
+      [
+        "Charge controllers",
+        "150",
+        "130",
+        "20"
+      ],
+      [
+        "Mounting brackets",
+        "300",
+        "240",
+        "60"
+      ],
+      [
+        "Cable reels",
+        "50",
+        "42",
+        "8"
+      ]
+    ],
+    [
+      [
+        "Route",
+        "Trips",
+        "On time",
+        "Late"
+      ],
+      [
+        "Marina",
+        "40",
+        "38",
+        "2"
+      ],
+      [
+        "Ikeja",
+        "35",
+        "32",
+        "3"
+      ],
+      [
+        "Lekki",
+        "30",
+        "29",
+        "1"
+      ],
+      [
+        "Yaba",
+        "28",
+        "26",
+        "2"
+      ]
+    ]
+  ],
+  "files": {
+    "animated.gif": {
+      "bytes": 11943,
+      "sha256": "0f763fc6150228dc64fc43e993eca9c3ba7dcaea384d8ce85518da65861bd09b"
+    },
+    "delivery-note.png": {
+      "bytes": 73899,
+      "sha256": "9b8ec634f9840c3914c6cb022aa9d3e5aa3fbc1df8e23c991ff2083b6c66db90"
+    },
+    "landscape.jpg": {
+      "bytes": 75569,
+      "sha256": "9d80a2282772e406cbadf1aabf21558f8d4d6582d6255cbaa009d3b72fd6fadd"
+    },
+    "mixed-content.pdf": {
+      "bytes": 99327,
+      "sha256": "14365560f60db51ef80cc8e5892270f76702ad27d186ec3dcfac249d3a9d6ce7"
+    },
+    "ocr-expected.txt": {
+      "bytes": 205,
+      "sha256": "39e6c8559f4053bc63f96b0ff7eaef098725cb255be6de44604652a4f3306b0a"
+    },
+    "operations-report.docx": {
+      "bytes": 105772,
+      "sha256": "f09df227b480d479db252ba238e0f41a9dd0542e2398d54b96c7272f290f5b22"
+    },
+    "palette.gif": {
+      "bytes": 24935,
+      "sha256": "d1fda6cbf2694c320f689f396b27d85ad631869bde10b2bc16b44eb86bdfadd4"
+    },
+    "portrait.webp": {
+      "bytes": 18790,
+      "sha256": "72b1f1f14d9636629a98bf3c265d283b33aaa73ef3e3201ed6f215602bdbb634"
+    },
+    "square.avif": {
+      "bytes": 19816,
+      "sha256": "4a5a5383f5b9e02adb9365dd01db9079cad8e51bbb187276cf2504a1a5af82f1"
+    },
+    "supplier-appendix.pdf": {
+      "bytes": 96891,
+      "sha256": "bfa1e035fd640046cd7669e0b888a024355e8ed983efa73c32d54159fd61ea80"
+    },
+    "table-ledger.pdf": {
+      "bytes": 3257,
+      "sha256": "91911337502716e4cb734c347a7f4d462a34463729d11e1fa0d60e4991643f79"
+    },
+    "transparent.png": {
+      "bytes": 56577,
+      "sha256": "46abce0ff9d89ac491e00b4e68ef403d9498366c241c23c51c856055a3d7adae"
+    },
+    "wide.tiff": {
+      "bytes": 1500140,
+      "sha256": "2c26b0db820ba966e03eac46faa7702079dc3619079a0d451b2aea500c2b5157"
+    }
+  }
+}

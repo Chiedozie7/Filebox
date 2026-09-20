@@ -1,0 +1,7 @@
+# Generated test artifacts
+test-output/
+
+# OCR language data downloaded/generated locally
+fb-backend/eng.traineddata
+
+test-files/tools/
