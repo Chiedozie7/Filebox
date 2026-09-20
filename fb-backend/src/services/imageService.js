@@ -59,6 +59,13 @@ const compressImage = async (inputPath, outputPath, format) => {
     }
 
     const originalSize = fs.statSync(inputPath).size;
+    const candidateSize = fs.statSync(outputPath).size;
+    const usedOriginal = candidateSize >= originalSize;
+
+    if (usedOriginal) {
+        fs.copyFileSync(inputPath, outputPath);
+    }
+
     const compressedSize = fs.statSync(outputPath).size;
     const savedBytes = originalSize - compressedSize;
 
@@ -70,6 +77,7 @@ const compressImage = async (inputPath, outputPath, format) => {
         compressedSize,
         savedBytes,
         reductionPercentage,
+        usedOriginal,
     };
 };
 
