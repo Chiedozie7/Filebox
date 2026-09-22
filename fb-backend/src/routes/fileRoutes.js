@@ -14,7 +14,7 @@ const {
     convertExcelToPdf,
     convertExcelToWord,
     downloadFile,
-    batchConvertImages,
+    batchConvertFiles,
 } = require("../controllers/fileController");
 
 const {
@@ -87,7 +87,7 @@ router.post(
 router.post(
     "/convert/batch",
     upload.array("files", 20),
-    batchConvertImages
+    batchConvertFiles
 );
 
 router.get("/download/:filename", downloadFile);

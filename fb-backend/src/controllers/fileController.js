@@ -484,17 +484,16 @@ const downloadFile = (req, res) => {
     }
 };
 
-const batchConvertImages = async (req, res) => {
+const batchConvertFiles = async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
-                error: "No images uploaded",
+                error: "No files uploaded",
             });
         }
 
         const format = req.body.format?.toLowerCase();
-
-        const supportedFormats = [
+        const imageFormats = [
             "jpeg",
             "jpg",
             "png",
@@ -504,7 +503,7 @@ const batchConvertImages = async (req, res) => {
             "gif",
         ];
 
-        if (!format || !supportedFormats.includes(format)) {
+        if (!format || ![...imageFormats, "pdf", "docx", "xlsx"].includes(format)) {
             return res.status(400).json({
                 error: "Unsupported output format",
             });
@@ -512,21 +511,53 @@ const batchConvertImages = async (req, res) => {
 
         const outputFormat = format === "jpg" ? "jpeg" : format;
         const outputExtension = format === "jpeg" ? "jpg" : format;
+        const officeConversions = {
+            pdf: ["docx", "xlsx"],
+            docx: ["pdf", "xlsx"],
+            xlsx: ["pdf", "docx"],
+        };
+        const sources = req.files.map((file) => {
+            const extension = path.extname(file.originalname).toLowerCase().slice(1);
+            return extension === "jpg" ? "jpeg" : extension;
+        });
+
+        for (const source of sources) {
+            const supported = imageFormats.includes(source)
+                ? imageFormats.includes(outputFormat)
+                : officeConversions[source]?.includes(outputFormat);
+            if (!supported) {
+                return res.status(400).json({
+                    error: `Unsupported conversion: ${source || "unknown"} to ${outputFormat}`,
+                });
+            }
+        }
 
         const convertedPaths = [];
 
-        for (const file of req.files) {
+        for (const [index, file] of req.files.entries()) {
             const outputName =
                 `converted-${Date.now()}-${Math.round(Math.random() * 1e9)}.${outputExtension}`;
             const outputPath = path.join("uploads", outputName);
+            const source = sources[index];
+            let result;
 
-            await imageService.convertImage(
-                file.path,
-                outputPath,
-                outputFormat
-            );
+            if (imageFormats.includes(source)) {
+                await imageService.convertImage(file.path, outputPath, outputFormat);
+            } else if (source === "pdf" && outputFormat === "docx") {
+                result = await pdfService.convertPdfToWord(file.path, outputPath);
+            } else if (source === "pdf" && outputFormat === "xlsx") {
+                result = await pdfService.convertPdfToExcel(file.path, outputPath);
+            } else if (source === "docx" && outputFormat === "pdf") {
+                result = await wordService.convertWordToPdf(file.path, "uploads");
+            } else if (source === "docx" && outputFormat === "xlsx") {
+                result = await wordService.convertWordToExcel(file.path, outputPath);
+            } else if (source === "xlsx" && outputFormat === "pdf") {
+                result = await excelService.convertExcelToPdf(file.path, "uploads");
+            } else if (source === "xlsx" && outputFormat === "docx") {
+                result = await excelService.convertExcelToWord(file.path, outputPath);
+            }
 
-            convertedPaths.push(outputPath);
+            convertedPaths.push(result?.outputPath || outputPath);
         }
 
         const zipName = `batch-${Date.now()}.zip`;
@@ -542,7 +573,7 @@ const batchConvertImages = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({
-            error: "Failed to batch convert images",
+            error: "Failed to batch convert files",
         });
     }
 };
@@ -561,5 +592,5 @@ module.exports = {
     convertExcelToPdf,
     convertExcelToWord,
     downloadFile,
-    batchConvertImages,
+    batchConvertFiles,
 };
