@@ -81,6 +81,12 @@ const compressImage = async (inputPath, outputPath, format) => {
     };
 };
 
+const isSupportedStaticImage = async (inputPath, extension) => {
+    const metadata = await sharp(inputPath).metadata();
+    const expectedFormat = extension === "avif" ? "heif" : extension;
+    return metadata.format === expectedFormat && (metadata.pages || 1) === 1;
+};
+
 const resizeImage = async (inputPath, outputPath, width, height) => {
     const originalMetadata = await sharp(inputPath).metadata();
 
@@ -140,5 +146,6 @@ module.exports = {
     compressImage,
     resizeImage,
     convertImage,
-    getImageFormat
+    getImageFormat,
+    isSupportedStaticImage,
 };

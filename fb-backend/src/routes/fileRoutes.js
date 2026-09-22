@@ -15,6 +15,7 @@ const {
     convertExcelToWord,
     downloadFile,
     batchConvertFiles,
+    zipFiles,
 } = require("../controllers/fileController");
 
 const {
@@ -88,6 +89,12 @@ router.post(
     "/convert/batch",
     upload.array("files", 20),
     batchConvertFiles
+);
+
+router.post(
+    "/zip",
+    upload.array("files", 20),
+    zipFiles
 );
 
 router.get("/download/:filename", downloadFile);

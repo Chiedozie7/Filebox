@@ -1,6 +1,7 @@
 const fileService = require("../services/fileService");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const imageService = require("../services/imageService");
 const pdfService = require("../services/pdfService");
 const wordService = require("../services/wordService");
@@ -212,37 +213,70 @@ const mergePDFs = async (req, res) => {
     try {
         if (!req.files || req.files.length < 2) {
             return res.status(400).json({
-                error: "At least two PDF files are required",
+                error: "At least two files are required",
             });
         }
 
-        const invalidFile = req.files.find(
-            (file) =>
-                path.extname(file.originalname)
-                    .toLowerCase() !== ".pdf"
+        const imageFormats = ["jpg", "jpeg", "png", "webp", "avif", "tiff", "gif"];
+        const extensions = req.files.map((file) =>
+            path.extname(file.originalname).toLowerCase().slice(1)
         );
-
-        if (invalidFile) {
-            return res.status(400).json({
-                error: "All uploaded files must be PDFs",
-            });
+        for (const [index, extension] of extensions.entries()) {
+            if (!["pdf", "docx", "xlsx", ...imageFormats].includes(extension)) {
+                return res.status(400).json({
+                    error: `Unsupported file type: ${extension || "unknown"}`,
+                });
+            }
+            if (imageFormats.includes(extension)) {
+                let validImage = false;
+                try {
+                    validImage = await imageService.isSupportedStaticImage(
+                        req.files[index].path,
+                        extension === "jpg" ? "jpeg" : extension
+                    );
+                } catch {
+                    // Invalid image data is a bad upload, not a merge failure.
+                }
+                if (!validImage) {
+                    return res.status(400).json({
+                        error: "Uploaded image must be a supported static image",
+                    });
+                }
+            }
         }
 
-        const outputName =
-            `merged-${Date.now()}.pdf`;
-
-        const outputPath = path.join(
-            "uploads",
-            outputName
+        const outputName = `merged-${Date.now()}.pdf`;
+        const outputPath = path.join("uploads", outputName);
+        const temporaryDir = await fs.promises.mkdtemp(
+            path.join(os.tmpdir(), "fileforge-mixed-merge-")
         );
-
-        await pdfService.mergePDFs(
-            req.files.map((file) => file.path),
-            outputPath
-        );
+        try {
+            const pdfPaths = [];
+            for (const [index, file] of req.files.entries()) {
+                const extension = extensions[index];
+                if (extension === "pdf") {
+                    pdfPaths.push(file.path);
+                } else if (extension === "docx") {
+                    const result = await wordService.convertWordToPdf(file.path, temporaryDir);
+                    pdfPaths.push(result.outputPath);
+                } else if (extension === "xlsx") {
+                    const result = await excelService.convertExcelToPdf(file.path, temporaryDir);
+                    pdfPaths.push(result.outputPath);
+                } else {
+                    const pngPath = path.join(temporaryDir, `${index}.png`);
+                    const pdfPath = path.join(temporaryDir, `${index}.pdf`);
+                    await imageService.convertImage(file.path, pngPath, "png");
+                    await pdfService.convertPngToPdf(pngPath, pdfPath);
+                    pdfPaths.push(pdfPath);
+                }
+            }
+            await pdfService.mergePDFs(pdfPaths, outputPath);
+        } finally {
+            await fs.promises.rm(temporaryDir, { recursive: true, force: true });
+        }
 
         res.json({
-            message: "PDFs merged successfully",
+            message: "Files merged successfully",
             files: req.files.map(
                 (file) => file.filename
             ),
@@ -252,7 +286,7 @@ const mergePDFs = async (req, res) => {
         console.error(error);
 
         res.status(500).json({
-            error: "Failed to merge PDFs",
+            error: "Failed to merge files into PDF",
         });
     }
 };
@@ -578,6 +612,81 @@ const batchConvertFiles = async (req, res) => {
     }
 };
 
+const zipFiles = async (req, res) => {
+    let outputPath;
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: "No files uploaded" });
+        }
+
+        const supportedImages = ["jpg", "jpeg", "png", "webp", "avif", "tiff", "gif"];
+        const supported = ["pdf", "docx", "xlsx", ...supportedImages];
+        const entryNames = [];
+        const usedNames = new Map();
+
+        for (const file of req.files) {
+            const extension = path.extname(file.originalname).toLowerCase().slice(1);
+            if (!supported.includes(extension)) {
+                return res.status(400).json({
+                    error: `Unsupported file type: ${extension || "unknown"}`,
+                });
+            }
+            if (supportedImages.includes(extension)) {
+                let validImage = false;
+                try {
+                    validImage = await imageService.isSupportedStaticImage(
+                        file.path,
+                        extension === "jpg" ? "jpeg" : extension
+                    );
+                } catch {
+                    validImage = false;
+                }
+                if (!validImage) {
+                    return res.status(400).json({
+                        error: "Uploaded image must be a supported static image",
+                    });
+                }
+            }
+
+            const originalName = path.basename(file.originalname);
+            const parsed = path.parse(originalName);
+            const count = usedNames.get(originalName) || 0;
+            let entryName = originalName;
+            if (count > 0) {
+                entryName = `${parsed.name} (${count + 1})${parsed.ext}`;
+                while (usedNames.has(entryName)) {
+                    const nextCount = usedNames.get(originalName) + 1;
+                    usedNames.set(originalName, nextCount);
+                    entryName = `${parsed.name} (${nextCount + 1})${parsed.ext}`;
+                }
+            }
+            usedNames.set(originalName, count + 1);
+            usedNames.set(entryName, usedNames.get(entryName) || 1);
+            entryNames.push(entryName);
+        }
+
+        const zipName = `files-${Date.now()}.zip`;
+        outputPath = path.join("uploads", zipName);
+        await zipService.createZip(
+            req.files.map((file) => file.path),
+            outputPath,
+            entryNames
+        );
+
+        res.json({
+            message: "Files zipped successfully",
+            files: entryNames,
+            zip: zipName,
+        });
+    } catch (error) {
+        if (outputPath) {
+            await fs.promises.rm(outputPath, { force: true }).catch(() => {});
+        }
+        console.error(error);
+        res.status(500).json({ error: "Failed to create ZIP" });
+    }
+};
+
 module.exports = {
     uploadFile,
     getFiles,
@@ -593,4 +702,5 @@ module.exports = {
     convertExcelToWord,
     downloadFile,
     batchConvertFiles,
+    zipFiles,
 };

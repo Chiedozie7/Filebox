@@ -64,6 +64,31 @@ const mergePDFs = async (inputPaths, outputPath) => {
     fs.writeFileSync(outputPath, mergedBytes);
 };
 
+const convertPngToPdf = async (inputPath, outputPath) => {
+    const pdf = await PDFDocument.create();
+    const image = await pdf.embedPng(fs.readFileSync(inputPath));
+    const landscape = image.width > image.height;
+    const pageWidth = landscape ? 842 : 595;
+    const pageHeight = landscape ? 595 : 842;
+    const margin = 24;
+    const scale = Math.min(
+        1,
+        (pageWidth - margin * 2) / image.width,
+        (pageHeight - margin * 2) / image.height
+    );
+    const width = image.width * scale;
+    const height = image.height * scale;
+    const page = pdf.addPage([pageWidth, pageHeight]);
+    page.drawImage(image, {
+        x: (pageWidth - width) / 2,
+        y: (pageHeight - height) / 2,
+        width,
+        height,
+    });
+    fs.writeFileSync(outputPath, await pdf.save());
+    return { outputPath };
+};
+
 const splitPDF = async (
     inputPath,
     outputPath,
@@ -284,6 +309,7 @@ const convertPdfToExcel = async (
 module.exports = {
     compressPDF,
     mergePDFs,
+    convertPngToPdf,
     splitPDF,
     convertPdfToWord,
     convertPdfToExcel,
