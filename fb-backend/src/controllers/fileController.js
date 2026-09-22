@@ -437,6 +437,30 @@ const convertExcelToPdf = async (req, res) => {
     }
 };
 
+const convertExcelToWord = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No Excel document uploaded" });
+        }
+        if (path.extname(req.file.originalname).toLowerCase() !== ".xlsx") {
+            return res.status(400).json({ error: "Uploaded file must be an XLSX document" });
+        }
+
+        const outputName = `converted-${Date.now()}.docx`;
+        const outputPath = path.join("uploads", outputName);
+        const result = await excelService.convertExcelToWord(req.file.path, outputPath);
+        res.json({
+            message: "Excel document converted to Word successfully",
+            original: req.file.filename,
+            converted: outputName,
+            worksheetsFound: result.worksheetCount,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to convert Excel document to Word" });
+    }
+};
+
 // --- New below ---
 
 const downloadFile = (req, res) => {
@@ -535,6 +559,7 @@ module.exports = {
     convertWordToPdf,
     convertWordToExcel,
     convertExcelToPdf,
+    convertExcelToWord,
     downloadFile,
     batchConvertImages,
 };

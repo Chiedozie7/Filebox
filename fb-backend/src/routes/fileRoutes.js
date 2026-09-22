@@ -12,6 +12,7 @@ const {
     convertWordToPdf,
     convertWordToExcel,
     convertExcelToPdf,
+    convertExcelToWord,
     downloadFile,
     batchConvertImages,
 } = require("../controllers/fileController");
@@ -70,6 +71,11 @@ router.post(
     "/excel/to-pdf",
     upload.single("file"),
     convertExcelToPdf
+);
+router.post(
+    "/excel/to-word",
+    upload.single("file"),
+    convertExcelToWord
 );
 
 router.post(

@@ -3,6 +3,10 @@ const fs = require("fs/promises");
 const os = require("os");
 const path = require("path");
 const JSZip = require("jszip"); // Already supplied by ExcelJS.
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+
+const execFileAsync = promisify(execFile);
 
 const setPrintAttributes = (tag, attributes) => {
     for (const [name, value] of Object.entries(attributes)) {
@@ -86,6 +90,15 @@ const convertExcelToPdf = async (inputPath, outputDir) => {
     }
 };
 
+const convertExcelToWord = async (inputPath, outputPath) => {
+    const scriptPath = path.join(__dirname, "..", "scripts", "xlsx_to_docx.py");
+    const { stdout } = await execFileAsync("python", [scriptPath, inputPath, outputPath], {
+        timeout: 60000,
+    });
+    return { outputPath, worksheetCount: Number(stdout.trim()) };
+};
+
 module.exports = {
     convertExcelToPdf,
+    convertExcelToWord,
 };
