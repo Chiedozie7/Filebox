@@ -6,9 +6,11 @@ const {
     compressImage,
     resizeImage,
     convertImage, 
+    compressPDF,
     mergePDFs,
     splitPDF,
     convertWordToPdf,
+    convertWordToExcel,
     convertExcelToPdf,
     downloadFile,
     batchConvertImages,
@@ -29,6 +31,7 @@ router.post("/upload", upload.single("file"), uploadFile);
 router.post("/compress", upload.single("file"), compressImage);
 router.post("/resize", upload.single("file"), resizeImage);
 router.post("/convert", upload.single("file"), convertImage);
+router.post("/pdf/compress", upload.single("file"), compressPDF);
 router.post(
     "/pdf/merge",
     upload.array("files", 20),
@@ -56,6 +59,11 @@ router.post(
     "/word/to-pdf",
     upload.single("file"),
     convertWordToPdf
+);
+router.post(
+    "/word/to-excel",
+    upload.single("file"),
+    convertWordToExcel
 );
 
 router.post(

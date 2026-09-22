@@ -8,6 +8,40 @@ const ExcelJS = require("exceljs");
 const execFileAsync = util.promisify(execFile);
 
 
+const compressPDF = async (inputPath, outputPath) => {
+    const originalBytes = fs.readFileSync(inputPath);
+    const original = await PDFDocument.load(originalBytes, {
+        updateMetadata: false,
+    });
+    const candidateBytes = await original.save({
+        useObjectStreams: true,
+    });
+    const candidate = await PDFDocument.load(candidateBytes, {
+        updateMetadata: false,
+    });
+
+    if (candidate.getPageCount() !== original.getPageCount()) {
+        throw new Error("Compression changed the PDF page count");
+    }
+
+    const originalSize = originalBytes.length;
+    const usedOriginal = candidateBytes.length >= originalSize;
+    const retainedBytes = usedOriginal ? originalBytes : candidateBytes;
+    fs.writeFileSync(outputPath, retainedBytes);
+
+    const compressedSize = retainedBytes.length;
+    const savedBytes = originalSize - compressedSize;
+
+    return {
+        originalSize,
+        compressedSize,
+        savedBytes,
+        reductionPercentage: ((savedBytes / originalSize) * 100).toFixed(1),
+        usedOriginal,
+    };
+};
+
+
 const mergePDFs = async (inputPaths, outputPath) => {
     const mergedPdf = await PDFDocument.create();
 
@@ -248,6 +282,7 @@ const convertPdfToExcel = async (
 
 
 module.exports = {
+    compressPDF,
     mergePDFs,
     splitPDF,
     convertPdfToWord,

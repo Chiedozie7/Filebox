@@ -173,6 +173,41 @@ const convertImage = async (req, res) => {
     }
 };
 
+const compressPDF = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: "No PDF uploaded",
+            });
+        }
+
+        if (path.extname(req.file.originalname).toLowerCase() !== ".pdf") {
+            return res.status(400).json({
+                error: "Uploaded file must be a PDF",
+            });
+        }
+
+        const outputName = `compressed-${Date.now()}.pdf`;
+        const outputPath = path.join("uploads", outputName);
+        const compressionResult = await pdfService.compressPDF(
+            req.file.path,
+            outputPath
+        );
+
+        res.json({
+            message: "PDF compressed successfully",
+            original: req.file.filename,
+            compressed: outputName,
+            ...compressionResult,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Failed to compress PDF",
+        });
+    }
+};
+
 const mergePDFs = async (req, res) => {
     try {
         if (!req.files || req.files.length < 2) {
@@ -327,6 +362,41 @@ const convertWordToPdf = async (req, res) => {
     }
 };
 
+const convertWordToExcel = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: "No Word document uploaded",
+            });
+        }
+
+        if (path.extname(req.file.originalname).toLowerCase() !== ".docx") {
+            return res.status(400).json({
+                error: "Uploaded file must be a DOCX document",
+            });
+        }
+
+        const outputName = `converted-${Date.now()}.xlsx`;
+        const outputPath = path.join("uploads", outputName);
+        const result = await wordService.convertWordToExcel(
+            req.file.path,
+            outputPath
+        );
+
+        res.json({
+            message: "Word document converted to Excel successfully",
+            original: req.file.filename,
+            converted: outputName,
+            tablesFound: result.tableCount,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Failed to convert Word document to Excel",
+        });
+    }
+};
+
 const convertExcelToPdf = async (req, res) => {
     try {
         if (!req.file) {
@@ -459,9 +529,11 @@ module.exports = {
     compressImage,
     resizeImage,
     convertImage,
+    compressPDF,
     mergePDFs,
     splitPDF,
     convertWordToPdf,
+    convertWordToExcel,
     convertExcelToPdf,
     downloadFile,
     batchConvertImages,
