@@ -1,34 +1,63 @@
 const ocrService = require("../services/ocrService");
+const imageService = require("../services/imageService");
+const fs = require("fs/promises");
+const path = require("path");
 
-const extractTextFromImage = async (req, res) => {
+const convertOcrToWord = async (req, res) => {
+    let outputPath;
     try {
         if (!req.file) {
             return res.status(400).json({
-                error: "No image uploaded",
+                error: "No image or PDF uploaded",
             });
         }
 
-        const lang = req.body.lang || "eng";
+        const extension = path.extname(req.file.originalname).toLowerCase().slice(1);
+        const imageFormats = ["jpg", "jpeg", "png", "webp", "avif", "tiff", "gif"];
+        if (extension !== "pdf" && !imageFormats.includes(extension)) {
+            return res.status(400).json({
+                error: `Unsupported file type: ${extension || "unknown"}`,
+            });
+        }
+        if (imageFormats.includes(extension)) {
+            let validImage = false;
+            try {
+                validImage = await imageService.isSupportedStaticImage(
+                    req.file.path,
+                    extension === "jpg" ? "jpeg" : extension
+                );
+            } catch {
+                validImage = false;
+            }
+            if (!validImage) {
+                return res.status(400).json({
+                    error: "Uploaded image must be a supported static image",
+                });
+            }
+        }
 
-        const result = await ocrService.extractTextFromImage(
+        const lang = req.body.lang || "eng";
+        const outputName = `ocr-${Date.now()}.docx`;
+        outputPath = path.join("uploads", outputName);
+        await ocrService.convertToWord(
             req.file.path,
+            outputPath,
+            extension === "pdf" ? "pdf" : "image",
             lang
         );
 
-        res.json({
-            message: "Text extracted successfully",
-            original: req.file.filename,
-            text: result.text,
-            confidence: result.confidence,
-        });
+        res.download(outputPath, outputName);
     } catch (error) {
+        if (outputPath) {
+            await fs.rm(outputPath, { force: true }).catch(() => {});
+        }
         console.error(error);
         res.status(500).json({
-            error: "Failed to extract text from image",
+            error: "Failed to convert OCR to Word",
         });
     }
 };
 
 module.exports = {
-    extractTextFromImage,
+    convertOcrToWord,
 };

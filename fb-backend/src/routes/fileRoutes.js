@@ -24,7 +24,7 @@ const {
 } = require("../controllers/pdfController");
 
 const {
-    extractTextFromImage,
+    convertOcrToWord,
 } = require("../controllers/ocrController");
 
 const router = express.Router();
@@ -79,11 +79,7 @@ router.post(
     convertExcelToWord
 );
 
-router.post(
-    "/ocr/image",
-    upload.single("file"),
-    extractTextFromImage
-);
+router.post("/ocr/to-word", upload.single("file"), convertOcrToWord);
 
 router.post(
     "/convert/batch",
