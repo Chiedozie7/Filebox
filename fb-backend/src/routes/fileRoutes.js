@@ -7,6 +7,7 @@ const {
     resizeImage,
     convertImage, 
     compressPDF,
+    unlockPDF,
     mergePDFs,
     splitPDF,
     convertWordToPdf,
@@ -34,6 +35,7 @@ router.post("/compress", upload.single("file"), compressImage);
 router.post("/resize", upload.single("file"), resizeImage);
 router.post("/convert", upload.single("file"), convertImage);
 router.post("/pdf/compress", upload.single("file"), compressPDF);
+router.post("/pdf/unlock", upload.single("file"), unlockPDF);
 router.post(
     "/pdf/merge",
     upload.array("files", 20),

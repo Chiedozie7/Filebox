@@ -1,11 +1,40 @@
 const { PDFDocument } = require("pdf-lib");
-const { execFile } = require("child_process");
+const { execFile, spawn } = require("child_process");
 const util = require("util");
 const path = require("path");
 const fs = require("fs");
 const ExcelJS = require("exceljs");
 
 const execFileAsync = util.promisify(execFile);
+
+const unlockPDF = (inputPath, outputPath, password = "") => {
+    const scriptPath = path.join(__dirname, "..", "scripts", "unlock_pdf.py");
+    return new Promise((resolve, reject) => {
+        const child = spawn("python", [scriptPath, inputPath, outputPath]);
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+            timedOut = true;
+            child.kill();
+        }, 60000);
+
+        child.on("error", (error) => {
+            clearTimeout(timeout);
+            reject(error);
+        });
+        child.on("close", (code) => {
+            clearTimeout(timeout);
+            if (code === 0) return resolve({ outputPath });
+            const error = new Error(
+                timedOut ? "PDF unlock timed out" : "PDF unlock failed"
+            );
+            error.code = code === 2 ? "INCORRECT_PASSWORD"
+                : code === 3 ? "PASSWORD_REQUIRED"
+                : code === 4 ? "INVALID_PDF" : "UNLOCK_FAILED";
+            reject(error);
+        });
+        child.stdin.end(password, "utf8");
+    });
+};
 
 
 const compressPDF = async (inputPath, outputPath) => {
@@ -307,6 +336,7 @@ const convertPdfToExcel = async (
 
 
 module.exports = {
+    unlockPDF,
     compressPDF,
     mergePDFs,
     convertPngToPdf,

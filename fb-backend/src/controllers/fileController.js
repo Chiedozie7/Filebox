@@ -209,6 +209,45 @@ const compressPDF = async (req, res) => {
     }
 };
 
+const unlockPDF = async (req, res) => {
+    let outputPath;
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No PDF uploaded" });
+        }
+        if (path.extname(req.file.originalname).toLowerCase() !== ".pdf") {
+            return res.status(400).json({ error: "Uploaded file must be a PDF" });
+        }
+        if (req.body.password !== undefined && typeof req.body.password !== "string") {
+            return res.status(400).json({ error: "Password must be text" });
+        }
+
+        const outputName = `unlocked-${Date.now()}.pdf`;
+        outputPath = path.join("uploads", outputName);
+        await pdfService.unlockPDF(req.file.path, outputPath, req.body.password || "");
+        res.json({
+            message: "PDF unlocked successfully",
+            original: req.file.filename,
+            unlocked: outputName,
+        });
+    } catch (error) {
+        if (outputPath) {
+            await fs.promises.rm(outputPath, { force: true }).catch(() => {});
+        }
+        if (error.code === "INCORRECT_PASSWORD") {
+            return res.status(401).json({ error: "Incorrect PDF password" });
+        }
+        if (error.code === "PASSWORD_REQUIRED") {
+            return res.status(400).json({ error: "Password is required for this PDF" });
+        }
+        if (error.code === "INVALID_PDF") {
+            return res.status(400).json({ error: "Uploaded file is not a valid PDF" });
+        }
+        console.error(error);
+        res.status(500).json({ error: "Failed to unlock PDF" });
+    }
+};
+
 const mergePDFs = async (req, res) => {
     try {
         if (!req.files || req.files.length < 2) {
@@ -694,6 +733,7 @@ module.exports = {
     resizeImage,
     convertImage,
     compressPDF,
+    unlockPDF,
     mergePDFs,
     splitPDF,
     convertWordToPdf,
