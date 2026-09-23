@@ -25,7 +25,13 @@ const getAllFiles = async () => {
     return result.rows;
 };
 
+const getStoredNames = async () => {
+    const result = await pool.query("SELECT stored_name FROM files");
+    return result.rows.map((row) => row.stored_name);
+};
+
 module.exports = {
     createFile,
     getAllFiles,
+    getStoredNames,
 };

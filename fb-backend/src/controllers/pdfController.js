@@ -1,5 +1,6 @@
 const path = require("path");
 const pdfService = require("../services/pdfService");
+const temporaryFileCleanup = require("../services/temporaryFileCleanup");
 
 const isPdf = (file) =>
     path.extname(file.originalname).toLowerCase() === ".pdf";
@@ -25,6 +26,7 @@ const convertPdfToWord = async (req, res) => {
             "uploads",
             outputName
         );
+        temporaryFileCleanup.registerOutput(req, outputPath);
 
         await pdfService.convertPdfToWord(
             req.file.path,
@@ -68,6 +70,7 @@ const convertPdfToExcel = async (req, res) => {
             "uploads",
             outputName
         );
+        temporaryFileCleanup.registerOutput(req, outputPath);
 
         const result =
             await pdfService.convertPdfToExcel(
