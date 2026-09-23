@@ -35,10 +35,12 @@ const veryHeavy = createLimiter("veryHeavy");
 
 // Upload validation identifies the merge type before either limiter runs, so
 // each merge consumes exactly one processing quota.
+const getMergeClass = (req) => req.files?.some(file => path.extname(file.originalname).toLowerCase() !== ".pdf")
+    ? "veryHeavy" : "heavy";
+
 const mergeLimiter = (req, res, next) => {
-    const hasNonPdf = req.files?.some(file => path.extname(file.originalname).toLowerCase() !== ".pdf");
     req.rateLimitCleanupFiles = req.files;
-    return (hasNonPdf ? veryHeavy : heavy)(req, res, next);
+    return (getMergeClass(req) === "veryHeavy" ? veryHeavy : heavy)(req, res, next);
 };
 
 module.exports = {
@@ -46,5 +48,6 @@ module.exports = {
     heavy,
     veryHeavy,
     mergeLimiter,
+    getMergeClass,
     trustedProxyHops: positiveInteger("TRUST_PROXY_HOPS", 0),
 };

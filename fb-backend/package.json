@@ -7,6 +7,7 @@
     "test-codex": "echo Codex works",
     "test:rate-limit": "node test/rateLimits.test.js",
     "test:cleanup": "node test/temporaryFileCleanup.test.js",
+    "test:queue": "node test/jobQueue.test.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "dev": "nodemon --ignore uploads/ src/server.js"
