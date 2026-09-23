@@ -13,7 +13,7 @@ const convertOcrToWord = async (req, res) => {
         }
 
         const extension = path.extname(req.file.originalname).toLowerCase().slice(1);
-        const imageFormats = ["jpg", "jpeg", "png", "webp", "avif", "tiff", "gif"];
+        const imageFormats = ["jpg", "jpeg", "png", "webp", "avif", "tiff"];
         if (extension !== "pdf" && !imageFormats.includes(extension)) {
             return res.status(400).json({
                 error: `Unsupported file type: ${extension || "unknown"}`,

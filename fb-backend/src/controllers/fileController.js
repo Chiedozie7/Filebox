@@ -138,7 +138,6 @@ const convertImage = async (req, res) => {
             "webp",
             "avif",
             "tiff",
-            "gif",
         ];
 
         if (!format || !supportedFormats.includes(format)) {
@@ -256,7 +255,7 @@ const mergePDFs = async (req, res) => {
             });
         }
 
-        const imageFormats = ["jpg", "jpeg", "png", "webp", "avif", "tiff", "gif"];
+        const imageFormats = ["jpg", "jpeg", "png", "webp", "avif", "tiff"];
         const extensions = req.files.map((file) =>
             path.extname(file.originalname).toLowerCase().slice(1)
         );
@@ -573,7 +572,6 @@ const batchConvertFiles = async (req, res) => {
             "webp",
             "avif",
             "tiff",
-            "gif",
         ];
 
         if (!format || ![...imageFormats, "pdf", "docx", "xlsx"].includes(format)) {
@@ -658,7 +656,7 @@ const zipFiles = async (req, res) => {
             return res.status(400).json({ error: "No files uploaded" });
         }
 
-        const supportedImages = ["jpg", "jpeg", "png", "webp", "avif", "tiff", "gif"];
+        const supportedImages = ["jpg", "jpeg", "png", "webp", "avif", "tiff"];
         const supported = ["pdf", "docx", "xlsx", ...supportedImages];
         const entryNames = [];
         const usedNames = new Map();
