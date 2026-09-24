@@ -142,9 +142,9 @@ const createR2Service = ({ settings = config, client, sign = getSignedUrl,
         }
     };
 
-    const deleteObjects = async (keys) => {
+    const deleteObjects = async (keys, { skipActive = false } = {}) => {
         if (!settings.enabled) return;
-        await Promise.all(keys.filter(key => validKey(key)).map(key =>
+        await Promise.all(keys.filter(key => validKey(key) && (!skipActive || !activeKeys.has(key))).map(key =>
             client.send(new DeleteObjectCommand({ Bucket: settings.bucket, Key: key }))));
     };
 

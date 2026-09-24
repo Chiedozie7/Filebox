@@ -11,6 +11,7 @@ process.env.R2_ACCESS_KEY_ID = "test-key";
 process.env.R2_SECRET_ACCESS_KEY = "test-secret";
 process.env.R2_REF_SIGNING_SECRET = "test-reference-signing-secret";
 process.env.JOB_QUEUE_HEAVY_CONCURRENCY = "1";
+process.env.JOB_QUEUE_MAX_WAITING = "1";
 process.env.RATE_LIMIT_HEAVY_MAX = "20";
 process.env.RATE_LIMIT_VERY_HEAVY_MAX = "20";
 
@@ -103,7 +104,8 @@ const stage = async (base, name, type, bytes) => {
         const png = await fs.readFile(path.join(fixtureDir, "transparent.png"));
         const input = await stage(base, "transparent.png", "image/png", png);
         assert.match(input.key, /^temp\/input\/[0-9a-f]{32}\.png$/);
-        const forged = { ...input, token: input.token.slice(0, -1) + "x" };
+        const [tokenData, tokenSignature] = input.token.split(".");
+        const forged = { ...input, token: `${tokenData}.${tokenSignature[0] === "A" ? "B" : "A"}${tokenSignature.slice(1)}` };
         const invalid = await post(base, "/files/compress", { file: forged });
         assert.equal(invalid.status, 400);
         const before = new Set(await fs.readdir("uploads"));
@@ -154,12 +156,19 @@ const stage = async (base, name, type, bytes) => {
         const batchTwo = post(base, "/files/convert/batch", { files: [batchInputC], format: "webp" });
         await waitFor(() => jobQueue.stats().heavy.waiting === 1);
         assert.equal(jobQueue.stats().heavy.active, 1, "a two-file batch occupies one queue slot");
+        const rejectedInput = await stage(base, "transparent.png", "image/png", png);
+        const rejectedBatch = await post(base, "/files/convert/batch", { files: [rejectedInput], format: "webp" });
+        const sharedRejectedBatch = await post(base, "/files/convert/batch", { files: [batchInputA], format: "webp" });
         release();
+        assert.equal(rejectedBatch.status, 503);
+        assert.equal(sharedRejectedBatch.status, 503);
+        assert.ok(objects.has(batchInputA.key), "rejected reuse must not delete an active job's input");
         const batchResponseOne = await batchOne;
         const batchResponseTwo = await batchTwo;
         r2Module.downloadInput = originalDownload;
         assert.equal(batchResponseOne.status, 200);
         assert.equal(batchResponseTwo.status, 200);
+        await waitFor(() => !objects.has(rejectedInput.key));
         const batchBody = await batchResponseOne.json();
         assert.equal(batchBody.filesConverted, 2);
         assert.equal(objects.get(batchBody.output.key).bytes.subarray(0, 2).toString(), "PK");
@@ -200,6 +209,11 @@ const stage = async (base, name, type, bytes) => {
         assert.equal(outputFailure.status, 500);
         await waitFor(() => !objects.has(outputFailureInput.key) && jobQueue.stats().heavy.active === 0);
         assert.deepEqual(new Set(await fs.readdir("uploads")), before, "failed output upload removes local files");
+        for (let i = 0; i < 20; i++) await post(base, "/files/word/to-pdf", {});
+        const rateRejectedInput = await stage(base, "transparent.png", "image/png", png);
+        const rateRejected = await post(base, "/files/ocr/to-word", { file: rateRejectedInput });
+        assert.equal(rateRejected.status, 429);
+        await waitFor(() => !objects.has(rateRejectedInput.key));
         console.log("R2 signing, key, processing, cleanup, batch queue, and expiry checks passed");
     } finally {
         await new Promise(resolve => server.close(resolve));

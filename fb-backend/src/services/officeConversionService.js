@@ -24,7 +24,7 @@ const SOFFICE_PATH =
 const PROFILE_DIR = path.join(os.tmpdir(), "filebox-lo-profile");
 const PROFILE_URI = `file:///${PROFILE_DIR.replace(/\\/g, "/")}`;
 
-const convertToPdf = async (inputPath, outputDir) => {
+const performConversion = async (inputPath, outputDir) => {
     try {
         await execFileAsync(
             SOFFICE_PATH,
@@ -64,6 +64,15 @@ const convertToPdf = async (inputPath, outputDir) => {
     }
 
     return { outputPath };
+};
+
+// Heavy batches and very-heavy routes share one LibreOffice profile. Concurrent
+// launches against it can exit before producing their output or fail outright.
+let previousConversion = Promise.resolve();
+const convertToPdf = (inputPath, outputDir) => {
+    const conversion = previousConversion.then(() => performConversion(inputPath, outputDir));
+    previousConversion = conversion.catch(() => {});
+    return conversion;
 };
 
 module.exports = {

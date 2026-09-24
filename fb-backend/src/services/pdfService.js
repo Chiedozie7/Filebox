@@ -134,11 +134,12 @@ const splitPDF = async (
     const endIndex = endPage - 1;
 
     if (
+        !Number.isSafeInteger(startPage) || !Number.isSafeInteger(endPage) ||
         startIndex < 0 ||
         endIndex >= pageCount ||
         startIndex > endIndex
     ) {
-        throw new Error("Invalid page range");
+        throw Object.assign(new Error("Invalid page range"), { code: "INVALID_PAGE_RANGE" });
     }
 
     const newPdf = await PDFDocument.create();

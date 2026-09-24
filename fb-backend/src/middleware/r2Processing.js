@@ -9,6 +9,26 @@ const logger = require("../services/logger");
 const outputFields = ["compressed", "resized", "converted", "unlocked", "merged", "split", "zip"];
 const statusFor = (message) => /size limit|exceeds|too many/i.test(message) ? 413 : 400;
 
+// Rejections can happen before preflight or before a processing slot is granted.
+const cleanupRejected = (req, res, next) => {
+    if (!config.enabled) return next();
+    let handled = false;
+    const cleanup = () => {
+        if (handled || req.r2ProcessingStarted || (res.writableFinished && res.statusCode < 400)) return;
+        handled = true;
+        const references = Array.isArray(req.body?.files) ? req.body.files : [req.body?.file];
+        const keys = new Set();
+        for (const reference of references) {
+            try { keys.add(r2.verifyReference(reference, "input").key); }
+            catch { /* Never delete objects named by an untrusted reference. */ }
+        }
+        void r2.deleteObjects([...keys], { skipActive: true }).catch(error => logger.error("r2_rejected_input_cleanup_failed", { error }));
+    };
+    res.once("finish", cleanup);
+    res.once("close", cleanup);
+    next();
+};
+
 const remotePreflight = (policy) => (req, res, next) => {
     try {
         const references = policy.field === "files" ? req.body?.files : [req.body?.file];
@@ -30,12 +50,6 @@ const remotePreflight = (policy) => (req, res, next) => {
         // The merge limiter and queue classify from original filenames, before downloading.
         req.files = payloads.map(payload => ({ originalname: payload.name, size: payload.size, mimetype: payload.type }));
         if (policy.field !== "files") req.file = req.files[0];
-        res.once("close", () => {
-            if (!res.writableFinished && !req.jobQueueLease) {
-                void r2.deleteObjects(payloads.map(payload => payload.key)).catch(error =>
-                    logger.error("r2_abandoned_input_cleanup_failed", { error }));
-            }
-        });
         next();
     } catch (error) {
         res.status(statusFor(error.message)).json({ error: error.message });
@@ -46,6 +60,7 @@ const input = (policy) => config.enabled ? remotePreflight(policy) : policyUploa
 
 const process = (policy, controller) => async (req, res, next) => {
     if (!config.enabled) return controller(req, res, next);
+    req.r2ProcessingStarted = true;
 
     const localPaths = [];
     const inputKeys = req.remotePayloads.map(payload => payload.key);
@@ -126,4 +141,4 @@ const process = (policy, controller) => async (req, res, next) => {
     }
 };
 
-module.exports = { input, process, remotePreflight };
+module.exports = { input, process, remotePreflight, cleanupRejected };

@@ -94,9 +94,10 @@ const resizeImage = async (req, res) => {
             ? Number(req.body.height)
             : undefined;
 
-        if (!width && !height) {
+        if ((width === undefined && height === undefined) ||
+            [width, height].some(value => value !== undefined && (!Number.isSafeInteger(value) || value <= 0))) {
             return res.status(400).json({
-                error: "Width or height is required",
+                error: "Width or height must be a positive integer",
             });
         }
 
@@ -362,10 +363,11 @@ const splitPDF = async (req, res) => {
             req.body.endPage
         );
 
-        if (!startPage || !endPage) {
+        if (!Number.isSafeInteger(startPage) || !Number.isSafeInteger(endPage) ||
+            startPage < 1 || endPage < startPage) {
             return res.status(400).json({
                 error:
-                    "Start page and end page are required",
+                    "Start page and end page must be positive integers in ascending order",
             });
         }
 
@@ -396,8 +398,8 @@ const splitPDF = async (req, res) => {
     } catch (error) {
         logger.error("controller_failed", { controller: "fileController", error });
 
-        res.status(500).json({
-            error: "Failed to split PDF",
+        res.status(error.code === "INVALID_PAGE_RANGE" ? 400 : 500).json({
+            error: error.code === "INVALID_PAGE_RANGE" ? "Invalid page range" : "Failed to split PDF",
         });
     }
 };

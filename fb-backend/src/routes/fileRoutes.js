@@ -1,6 +1,5 @@
 const express = require("express");
-const upload = require("../middleware/upload");
-const { policies } = require("../middleware/validateUpload");
+const { policies, policyUpload } = require("../middleware/validateUpload");
 const { light, heavy, veryHeavy, mergeLimiter } = require("../middleware/rateLimits");
 const jobQueue = require("../middleware/jobQueue");
 const r2Processing = require("../middleware/r2Processing");
@@ -15,11 +14,12 @@ const { convertOcrToWord } = require("../controllers/ocrController");
 const { createUploadUrl, createDownloadUrl } = require("../controllers/r2Controller");
 
 const router = express.Router();
+router.use(r2Processing.cleanupRejected);
 const queued = (policy, queue, controller) => [r2Processing.input(policy), queue,
     jobQueue.run(trackProcessing(r2Processing.process(policy, controller)))];
 router.post("/r2/upload-url", light, createUploadUrl);
 router.post("/r2/download-url", light, createDownloadUrl);
-router.post("/upload", light, upload.single("file"), trackProcessing(uploadFile));
+router.post("/upload", light, policyUpload({ ...policies.zip, field: "file", maxCount: 1 }), trackProcessing(uploadFile));
 router.post("/compress", heavy, ...queued(policies.images, jobQueue.heavy, compressImage));
 router.post("/resize", heavy, ...queued(policies.images, jobQueue.heavy, resizeImage));
 router.post("/convert", heavy, ...queued(policies.images, jobQueue.heavy, convertImage));
