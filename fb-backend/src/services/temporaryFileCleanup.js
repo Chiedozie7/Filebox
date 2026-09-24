@@ -3,6 +3,7 @@ const os = require("os");
 const path = require("path");
 const fileRepository = require("../repositories/fileRepository");
 const r2Service = require("./r2Service");
+const appLogger = require("./logger");
 
 const DEFAULT_TTL_MS = 30 * 60 * 1000;
 const PERMANENT_LOOKUP_TIMEOUT_MS = 5000;
@@ -18,7 +19,7 @@ const createCleanupService = ({
     ttlMs = configuredTtlMs,
     getPermanentNames = () => fileRepository.getStoredNames(),
     sweepR2 = () => r2Service.sweep(),
-    logger = console,
+    logger = appLogger,
 } = {}) => {
     const uploadsRoot = path.resolve(uploadsDir);
     const systemTempRoot = path.resolve(tempRoot);
@@ -48,7 +49,7 @@ const createCleanupService = ({
                     summary.files++;
                 }
             } catch (error) {
-                if (error.code !== "ENOENT") logger.error("File cleanup failed:", error);
+                if (error.code !== "ENOENT") logger.error("file_cleanup_failed", { error });
             }
         }
     };
@@ -66,7 +67,7 @@ const createCleanupService = ({
                     summary.directories++;
                 }
             } catch (error) {
-                if (error.code !== "ENOENT") logger.error("Temporary-directory cleanup failed:", error);
+                if (error.code !== "ENOENT") logger.error("temporary_directory_cleanup_failed", { error });
             }
         }
     };
@@ -92,7 +93,7 @@ const createCleanupService = ({
                 databaseWarningShown = false;
             } catch (error) {
                 // The database identifies permanent /files/upload entries. Fail closed.
-                if (!databaseWarningShown) logger.warn("Skipping uploads cleanup; permanent-file lookup failed:", error);
+                if (!databaseWarningShown) logger.warn("permanent_file_lookup_failed", { error });
                 databaseWarningShown = true;
             } finally {
                 clearTimeout(lookupTimer);
@@ -100,7 +101,7 @@ const createCleanupService = ({
             await sweepFiles(permanentNames, cutoff, summary);
             await sweepTempDirs(cutoff, summary);
             try { summary.r2Objects = await sweepR2(); }
-            catch (error) { logger.error("R2 cleanup failed:", error); }
+            catch (error) { logger.error("r2_cleanup_failed", { error }); }
             return summary;
         })().finally(() => { sweepPromise = undefined; });
         return sweepPromise;
@@ -118,7 +119,7 @@ const createCleanupService = ({
         if (failed) {
             const paths = [...inputPaths, ...job.outputs].filter(Boolean).map(filePath => path.resolve(filePath));
             await Promise.all(paths.filter(insideUploads).map(filePath =>
-                fs.rm(filePath, { force: true }).catch(error => logger.error("Failed-job cleanup failed:", error))
+                fs.rm(filePath, { force: true }).catch(error => logger.error("failed_job_cleanup_failed", { error }))
             ));
         }
         jobs.delete(job);
@@ -137,7 +138,7 @@ const createCleanupService = ({
                 finished = true;
                 const inputPaths = [...(req.files || []), ...(req.file ? [req.file] : [])]
                     .map(file => file.path).filter(Boolean);
-                void finishJob(job, { failed: job.failed, inputPaths }).catch(error => logger.error("Request cleanup failed:", error));
+                void finishJob(job, { failed: job.failed, inputPaths }).catch(error => logger.error("request_cleanup_failed", { error }));
             };
             const responseDone = (failed) => {
                 job.responseDone = true;
@@ -167,7 +168,7 @@ const createCleanupService = ({
 
     const start = () => {
         if (!timer) {
-            timer = setInterval(() => { void sweep().catch(error => logger.error("Scheduled cleanup failed:", error)); }, Math.min(ttlMs, 60 * 1000));
+            timer = setInterval(() => { void sweep().catch(error => logger.error("scheduled_cleanup_failed", { error })); }, Math.min(ttlMs, 60 * 1000));
             timer.unref?.();
         }
         return sweep();

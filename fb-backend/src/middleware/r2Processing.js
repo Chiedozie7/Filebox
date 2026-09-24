@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const config = require("../config/r2");
 const r2 = require("../services/r2Service");
 const { policyUpload, validateStoredFiles } = require("./validateUpload");
+const logger = require("../services/logger");
 
 const outputFields = ["compressed", "resized", "converted", "unlocked", "merged", "split", "zip"];
 const statusFor = (message) => /size limit|exceeds|too many/i.test(message) ? 413 : 400;
@@ -32,7 +33,7 @@ const remotePreflight = (policy) => (req, res, next) => {
         res.once("close", () => {
             if (!res.writableFinished && !req.jobQueueLease) {
                 void r2.deleteObjects(payloads.map(payload => payload.key)).catch(error =>
-                    console.error("Abandoned R2 input cleanup failed:", error));
+                    logger.error("r2_abandoned_input_cleanup_failed", { error }));
             }
         });
         next();
@@ -105,7 +106,7 @@ const process = (policy, controller) => async (req, res, next) => {
         await controller(req, res, next);
         if (responsePromise) await responsePromise;
     } catch (error) {
-        if (!error.status) console.error("R2 processing failed:", error);
+        if (!error.status) logger.error("r2_processing_failed", { error });
         if (!res.headersSent && !res.destroyed) {
             res.status(error.status || 500);
             originalJson({ error: error.status ? error.message : "Failed to process R2 file" });
@@ -116,10 +117,10 @@ const process = (policy, controller) => async (req, res, next) => {
         const outputs = [...(req.cleanupJob?.outputs || [])];
         await Promise.all([...localPaths, ...outputs].map(file => fs.rm(file, { force: true }).catch(() => {})));
         try { await r2.deleteObjects(inputKeys); }
-        catch (error) { console.error("R2 input cleanup failed:", error); }
+        catch (error) { logger.error("r2_input_cleanup_failed", { error }); }
         if (publishedKey && !delivered) {
             try { await r2.deleteObjects([publishedKey]); }
-            catch (error) { console.error("R2 output cleanup failed:", error); }
+            catch (error) { logger.error("r2_output_cleanup_failed", { error }); }
         }
         releaseProtection();
     }

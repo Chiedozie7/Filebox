@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs/promises");
 const { rateLimit } = require("express-rate-limit");
+const logger = require("../services/logger");
 
 const positiveInteger = (name, fallback) => {
     const value = Number(process.env[name]);
@@ -19,6 +20,7 @@ const createLimiter = (name) => rateLimit({
     legacyHeaders: false,
     identifier: name,
     handler: async (req, res) => {
+        logger.warn("rate_limit_rejected", { limiter: name, statusCode: 429 });
         if (req.rateLimitCleanupFiles) {
             await Promise.all(req.rateLimitCleanupFiles.map(file => fs.rm(file.path, { force: true }).catch(() => {})));
         }

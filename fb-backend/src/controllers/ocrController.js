@@ -3,6 +3,7 @@ const imageService = require("../services/imageService");
 const fs = require("fs/promises");
 const path = require("path");
 const temporaryFileCleanup = require("../services/temporaryFileCleanup");
+const logger = require("../services/logger");
 
 const convertOcrToWord = async (req, res) => {
     let outputPath;
@@ -53,7 +54,7 @@ const convertOcrToWord = async (req, res) => {
         if (outputPath) {
             await fs.rm(outputPath, { force: true }).catch(() => {});
         }
-        console.error(error);
+        logger.error("controller_failed", { controller: "ocrController", error });
         res.status(500).json({
             error: "Failed to convert OCR to Word",
         });

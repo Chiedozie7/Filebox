@@ -1,4 +1,5 @@
 const { getMergeClass } = require("./rateLimits");
+const logger = require("../services/logger");
 
 const positiveInteger = (name, fallback) => {
     const value = Number(process.env[name]);
@@ -71,6 +72,7 @@ const createJobQueue = ({ heavyConcurrency = defaults.heavyConcurrency,
         if (group.active < group.limit && !group.waiting.length) {
             ticket.grant();
         } else if (waitingCount >= maxWaiting) {
+            logger.warn("job_queue_rejected", { queueClass: kind, waiting: waitingCount, maxWaiting, statusCode: 503 });
             res.status(503).json({ error: "Job queue is full", message: "Please try again later." });
         } else {
             waiting = true;

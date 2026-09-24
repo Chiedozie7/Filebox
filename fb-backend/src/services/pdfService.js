@@ -4,6 +4,7 @@ const util = require("util");
 const path = require("path");
 const fs = require("fs");
 const ExcelJS = require("exceljs");
+const logger = require("./logger");
 
 const execFileAsync = util.promisify(execFile);
 
@@ -194,10 +195,10 @@ const convertPdfToWord = async (
             }
         );
     }  catch (error) {
-        console.error("PDF to Word stderr:", error.stderr);
-        throw new Error(
-            `PDF to Word conversion failed: ${error.message}`
-        );
+        logger.error("pdf_to_word_conversion_failed", { error });
+        const failure = new Error("PDF to Word conversion failed");
+        failure.code = error.code;
+        throw failure;
     }
 
 if (!fs.existsSync(outputPath)) {

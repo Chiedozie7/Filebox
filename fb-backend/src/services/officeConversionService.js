@@ -3,6 +3,7 @@ const util = require("util");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const logger = require("./logger");
 
 const execFileAsync = util.promisify(execFile);
 
@@ -43,12 +44,15 @@ const convertToPdf = async (inputPath, outputDir) => {
     } catch (error) {
         // These were previously swallowed — this is what actually tells
         // you why soffice exited non-zero.
-        console.error("LibreOffice stdout:", error.stdout);
-        console.error("LibreOffice stderr:", error.stderr);
-        console.error("LibreOffice exit code:", error.code);
-        console.error("LibreOffice killed by timeout:", error.killed);
-        console.error("LibreOffice signal:", error.signal);
-        throw new Error(`Conversion to PDF failed: ${error.message}`);
+        logger.error("libreoffice_conversion_failed", {
+            error,
+            exitCode: error.code,
+            killed: Boolean(error.killed),
+            signal: error.signal,
+        });
+        const failure = new Error("Conversion to PDF failed");
+        failure.code = error.code;
+        throw failure;
     }
 
     const inputName = path.basename(inputPath);

@@ -8,6 +8,7 @@ const wordService = require("../services/wordService");
 const excelService = require("../services/excelService");
 const zipService = require("../services/zipService");
 const temporaryFileCleanup = require("../services/temporaryFileCleanup");
+const logger = require("../services/logger");
 
 
 const uploadFile = async (req, res) => {
@@ -22,7 +23,7 @@ const uploadFile = async (req, res) => {
 
         res.status(201).json(file);
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({
             error: "Failed to upload file",
         });
@@ -35,7 +36,7 @@ const getFiles = async (req, res) => {
 
         res.json(files);
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({
             error: "Failed to retrieve files",
         });
@@ -70,7 +71,7 @@ const compressImage = async (req, res) => {
             ...compressionResult,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({
             error: "Failed to compress image",
         });
@@ -117,7 +118,7 @@ const resizeImage = async (req, res) => {
             ...resizeResult,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({
             error: "Failed to resize image",
         });
@@ -169,7 +170,7 @@ const convertImage = async (req, res) => {
             format: outputFormat,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
 
         res.status(500).json({
             error: "Failed to convert image",
@@ -206,7 +207,7 @@ const compressPDF = async (req, res) => {
             ...compressionResult,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({
             error: "Failed to compress PDF",
         });
@@ -248,7 +249,7 @@ const unlockPDF = async (req, res) => {
         if (error.code === "INVALID_PDF") {
             return res.status(400).json({ error: "Uploaded file is not a valid PDF" });
         }
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({ error: "Failed to unlock PDF" });
     }
 };
@@ -328,7 +329,7 @@ const mergePDFs = async (req, res) => {
             merged: outputName,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
 
         res.status(500).json({
             error: "Failed to merge files into PDF",
@@ -393,7 +394,7 @@ const splitPDF = async (req, res) => {
             endPage,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
 
         res.status(500).json({
             error: "Failed to split PDF",
@@ -435,7 +436,7 @@ const convertWordToPdf = async (req, res) => {
             converted: path.basename(result.outputPath),
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
 
         res.status(500).json({
             error: "Failed to convert Word document to PDF",
@@ -472,7 +473,7 @@ const convertWordToExcel = async (req, res) => {
             tablesFound: result.tableCount,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({
             error: "Failed to convert Word document to Excel",
         });
@@ -512,7 +513,7 @@ const convertExcelToPdf = async (req, res) => {
             converted: path.basename(result.outputPath),
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
 
         res.status(500).json({
             error: "Failed to convert Excel document to PDF",
@@ -540,7 +541,7 @@ const convertExcelToWord = async (req, res) => {
             worksheetsFound: result.worksheetCount,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({ error: "Failed to convert Excel document to Word" });
     }
 };
@@ -561,7 +562,7 @@ const downloadFile = (req, res) => {
 
         res.download(filePath, filename);
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({
             error: "Failed to download file",
         });
@@ -659,7 +660,7 @@ const batchConvertFiles = async (req, res) => {
             zip: zipName,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({
             error: "Failed to batch convert files",
         });
@@ -737,7 +738,7 @@ const zipFiles = async (req, res) => {
         if (outputPath) {
             await fs.promises.rm(outputPath, { force: true }).catch(() => {});
         }
-        console.error(error);
+        logger.error("controller_failed", { controller: "fileController", error });
         res.status(500).json({ error: "Failed to create ZIP" });
     }
 };

@@ -1,6 +1,7 @@
 const path = require("path");
 const pdfService = require("../services/pdfService");
 const temporaryFileCleanup = require("../services/temporaryFileCleanup");
+const logger = require("../services/logger");
 
 const isPdf = (file) =>
     path.extname(file.originalname).toLowerCase() === ".pdf";
@@ -40,7 +41,7 @@ const convertPdfToWord = async (req, res) => {
             converted: outputName,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "pdfController", error });
 
         res.status(500).json({
             error:
@@ -86,7 +87,7 @@ const convertPdfToExcel = async (req, res) => {
             tablesFound: result.tableCount,
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "pdfController", error });
 
         res.status(500).json({
             error:

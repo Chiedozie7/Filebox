@@ -1,5 +1,6 @@
 const path = require("path");
 const wordService = require("../services/wordService");
+const logger = require("../services/logger");
 
 const convertWordToPdf = async (req, res) => {
     try {
@@ -30,7 +31,7 @@ const convertWordToPdf = async (req, res) => {
             converted: path.basename(result.outputPath),
         });
     } catch (error) {
-        console.error(error);
+        logger.error("controller_failed", { controller: "wordController", error });
 
         res.status(500).json({
             error: "Failed to convert Word document to PDF",

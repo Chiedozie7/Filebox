@@ -9,6 +9,7 @@
     "test:cleanup": "node test/temporaryFileCleanup.test.js",
     "test:queue": "node test/jobQueue.test.js",
     "test:r2": "node test/r2Storage.test.js",
+    "test:health": "node test/healthLogging.test.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "dev": "nodemon --ignore uploads/ src/server.js"
