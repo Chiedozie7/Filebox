@@ -1,0 +1,49 @@
+name: Backend CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: fb-backend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: fb-backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Check JavaScript syntax
+        run: find src test -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
+
+      - name: Test rate limiting
+        run: npm run test:rate-limit
+
+      - name: Test job queue
+        run: npm run test:queue
+
+      - name: Test temporary file cleanup
+        run: npm run test:cleanup
+
+      - name: Test health and structured logging
+        run: npm run test:health
+
+      - name: Test R2 with mocks
+        run: npm run test:r2
