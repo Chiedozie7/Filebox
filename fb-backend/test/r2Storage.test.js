@@ -52,8 +52,14 @@ const client = {
         throw new Error(`Unexpected command: ${kind}`);
     },
 };
-const sign = async (unusedClient, command, options) =>
-    `https://r2.example/${command.constructor.name}/${command.input.Key}?expires=${options.expiresIn}`;
+const sign = async (unusedClient, command, options) => {
+    const query = new URLSearchParams({ expires: String(options.expiresIn) });
+    if (command.input.ResponseContentDisposition)
+        query.set("response-content-disposition", command.input.ResponseContentDisposition);
+    if (command.input.ResponseContentType)
+        query.set("response-content-type", command.input.ResponseContentType);
+    return `https://r2.example/${command.constructor.name}/${command.input.Key}?${query}`;
+};
 const settings = {
     enabled: true, bucket: "test-bucket", signingSecret: process.env.R2_REF_SIGNING_SECRET,
     uploadUrlSeconds: 300, downloadUrlSeconds: 300,
@@ -105,6 +111,10 @@ const stage = async (base, name, type, bytes) => {
         assert.equal(processed.status, 200);
         const body = await processed.json();
         assert.match(body.downloadUrl, /GetObjectCommand/);
+        const processingUrl = new URL(body.downloadUrl);
+        assert.equal(processingUrl.searchParams.get("response-content-disposition"),
+            `attachment; filename="${body.output.name}"`);
+        assert.equal(processingUrl.searchParams.get("response-content-type"), "image/png");
         assert.equal(validKey(body.output.key, "output"), true);
         assert.equal(await sharp(objects.get(body.output.key).bytes).metadata().then(value => value.format), "png");
         await waitFor(() => !objects.has(input.key) && jobQueue.stats().heavy.active === 0);
@@ -112,7 +122,12 @@ const stage = async (base, name, type, bytes) => {
 
         const refreshed = await post(base, "/files/r2/download-url", { object: body.output });
         assert.equal(refreshed.status, 200);
-        assert.match((await refreshed.json()).url, /GetObjectCommand/);
+        const refreshedBody = await refreshed.json();
+        assert.match(refreshedBody.url, /GetObjectCommand/);
+        const refreshedUrl = new URL(refreshedBody.url);
+        assert.equal(refreshedUrl.searchParams.get("response-content-disposition"),
+            `attachment; filename="${body.output.name}"`);
+        assert.equal(refreshedUrl.searchParams.get("response-content-type"), "image/png");
         assert.ok(commands.some(item => item.kind === "HeadObjectCommand" && item.input.Key === input.key));
         assert.ok(commands.some(item => item.kind === "PutObjectCommand" && item.input.Key === body.output.key));
 

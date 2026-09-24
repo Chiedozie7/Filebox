@@ -85,7 +85,8 @@ const createR2Service = ({ settings = config, client, sign = getSignedUrl,
     const downloadUrl = async (reference) => {
         const payload = verifyReference(reference, "output");
         const url = await sign(client, new GetObjectCommand({ Bucket: settings.bucket, Key: payload.key,
-            ResponseContentDisposition: `attachment; filename="${payload.name.replace(/["\\]/g, "_")}"` }),
+            ResponseContentDisposition: `attachment; filename="${payload.name.replace(/["\\]/g, "_")}"`,
+            ResponseContentType: payload.type }),
         { expiresIn: settings.downloadUrlSeconds });
         return { url, expiresIn: settings.downloadUrlSeconds };
     };
