@@ -86,15 +86,7 @@ const zipEntries = (buffer) => {
     return names;
 };
 
-const policyUpload = (policy) => (req, res, next) => {
-    req._fileForgeBytes = 0;
-    oneFile(policy, policy.field || "file", policy.maxCount || 1, policy.uploadMax || limits.bytes.pdf)(req, res, async (error) => {
-        if (error) {
-            const unexpectedField = error.code === "LIMIT_UNEXPECTED_FILE" && error.field !== (policy.field || "file");
-            const status = unexpectedField ? 400 : ["LIMIT_FILE_SIZE", "LIMIT_TOTAL_SIZE", "LIMIT_FILE_COUNT", "LIMIT_UNEXPECTED_FILE"].includes(error.code) ? 413 : 400;
-            const message = unexpectedField ? `Files must use the multipart field "${policy.field || "file"}"` : error.code === "LIMIT_TOTAL_SIZE" ? `Total uploaded file size exceeds ${displayMb(policy.maxTotal)} MB` : error.code === "LIMIT_FILE_SIZE" ? "Uploaded file exceeds the configured size limit" : "Too many uploaded files";
-            return reject(req, res, status, message);
-        }
+const validateStoredFiles = async (policy, req, res, next) => {
         const files = req.files || [];
         if ((policy.maxCount || 1) === 1 && files.length) req.file = files[0];
         if (policy.minCount && files.length < policy.minCount) return reject(req, res, 400, `At least ${policy.minCount} file(s) are required`);
@@ -140,6 +132,18 @@ const policyUpload = (policy) => (req, res, next) => {
             }
         }
         next();
+};
+
+const policyUpload = (policy) => (req, res, next) => {
+    req._fileForgeBytes = 0;
+    oneFile(policy, policy.field || "file", policy.maxCount || 1, policy.uploadMax || limits.bytes.pdf)(req, res, (error) => {
+        if (error) {
+            const unexpectedField = error.code === "LIMIT_UNEXPECTED_FILE" && error.field !== (policy.field || "file");
+            const status = unexpectedField ? 400 : ["LIMIT_FILE_SIZE", "LIMIT_TOTAL_SIZE", "LIMIT_FILE_COUNT", "LIMIT_UNEXPECTED_FILE"].includes(error.code) ? 413 : 400;
+            const message = unexpectedField ? `Files must use the multipart field "${policy.field || "file"}"` : error.code === "LIMIT_TOTAL_SIZE" ? `Total uploaded file size exceeds ${displayMb(policy.maxTotal)} MB` : error.code === "LIMIT_FILE_SIZE" ? "Uploaded file exceeds the configured size limit" : "Too many uploaded files";
+            return reject(req, res, status, message);
+        }
+        validateStoredFiles(policy, req, res, next).catch(next);
     });
 };
 
@@ -154,4 +158,4 @@ const multiple = (kind) => ({
     maxFor:ext=>ext==="pdf"?limits.bytes.pdf:officeExtensions.includes(ext)?limits.bytes.office:limits.bytes.image,
 });
 const officeExtensions = limits.allAllowed.filter(ext=>["docx","xlsx"].includes(ext));
-module.exports = { policyUpload, policies:{ images, pdf, docx:office("docx"), xlsx:office("xlsx"), ocr, merge:multiple("merge"), batch:multiple("batch"), zip:multiple("zip") } };
+module.exports = { policyUpload, validateStoredFiles, policies:{ images, pdf, docx:office("docx"), xlsx:office("xlsx"), ocr, merge:multiple("merge"), batch:multiple("batch"), zip:multiple("zip") } };

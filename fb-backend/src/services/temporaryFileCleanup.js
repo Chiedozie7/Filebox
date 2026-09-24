@@ -2,6 +2,7 @@ const fs = require("fs/promises");
 const os = require("os");
 const path = require("path");
 const fileRepository = require("../repositories/fileRepository");
+const r2Service = require("./r2Service");
 
 const DEFAULT_TTL_MS = 30 * 60 * 1000;
 const PERMANENT_LOOKUP_TIMEOUT_MS = 5000;
@@ -16,6 +17,7 @@ const createCleanupService = ({
     tempRoot = os.tmpdir(),
     ttlMs = configuredTtlMs,
     getPermanentNames = () => fileRepository.getStoredNames(),
+    sweepR2 = () => r2Service.sweep(),
     logger = console,
 } = {}) => {
     const uploadsRoot = path.resolve(uploadsDir);
@@ -97,6 +99,8 @@ const createCleanupService = ({
             }
             await sweepFiles(permanentNames, cutoff, summary);
             await sweepTempDirs(cutoff, summary);
+            try { summary.r2Objects = await sweepR2(); }
+            catch (error) { logger.error("R2 cleanup failed:", error); }
             return summary;
         })().finally(() => { sweepPromise = undefined; });
         return sweepPromise;
@@ -112,7 +116,7 @@ const createCleanupService = ({
     const finishJob = async (job, { failed = false, inputPaths = [] } = {}) => {
         if (!jobs.has(job)) return;
         if (failed) {
-            const paths = [...inputPaths, ...job.outputs].map(filePath => path.resolve(filePath));
+            const paths = [...inputPaths, ...job.outputs].filter(Boolean).map(filePath => path.resolve(filePath));
             await Promise.all(paths.filter(insideUploads).map(filePath =>
                 fs.rm(filePath, { force: true }).catch(error => logger.error("Failed-job cleanup failed:", error))
             ));
@@ -132,7 +136,7 @@ const createCleanupService = ({
                 if (finished || !job.responseDone || job.processing) return;
                 finished = true;
                 const inputPaths = [...(req.files || []), ...(req.file ? [req.file] : [])]
-                    .map(file => file.path);
+                    .map(file => file.path).filter(Boolean);
                 void finishJob(job, { failed: job.failed, inputPaths }).catch(error => logger.error("Request cleanup failed:", error));
             };
             const responseDone = (failed) => {

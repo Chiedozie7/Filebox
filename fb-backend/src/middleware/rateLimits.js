@@ -39,7 +39,7 @@ const getMergeClass = (req) => req.files?.some(file => path.extname(file.origina
     ? "veryHeavy" : "heavy";
 
 const mergeLimiter = (req, res, next) => {
-    req.rateLimitCleanupFiles = req.files;
+    req.rateLimitCleanupFiles = req.files?.filter(file => file.path);
     return (getMergeClass(req) === "veryHeavy" ? veryHeavy : heavy)(req, res, next);
 };
 

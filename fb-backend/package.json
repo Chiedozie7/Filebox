@@ -8,6 +8,7 @@
     "test:rate-limit": "node test/rateLimits.test.js",
     "test:cleanup": "node test/temporaryFileCleanup.test.js",
     "test:queue": "node test/jobQueue.test.js",
+    "test:r2": "node test/r2Storage.test.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "dev": "nodemon --ignore uploads/ src/server.js"
@@ -17,6 +18,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1138.0",
+    "@aws-sdk/s3-request-presigner": "^3.1138.0",
     "archiver": "^8.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
