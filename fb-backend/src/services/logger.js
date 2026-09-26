@@ -33,6 +33,15 @@ const sanitize = (value, key = "", depth = 0) => {
     return String(value);
 };
 
+const formatDevelopmentValue = (value) => {
+    if (typeof value === "string") {
+        return /[\s"=]/.test(value) ? JSON.stringify(value) : value;
+    }
+    if (value === undefined) return undefined;
+    if (value !== null && typeof value === "object") return JSON.stringify(value);
+    return String(value);
+};
+
 const createLogger = ({ environment = process.env.NODE_ENV || "development", write } = {}) => {
     const output = write || ((line, level) => (level === "error" || level === "warn" ? process.stderr : process.stdout).write(`${line}\n`));
     const emit = (level, event, fields = {}) => {
@@ -45,7 +54,13 @@ const createLogger = ({ environment = process.env.NODE_ENV || "development", wri
         };
         const line = environment === "production"
             ? JSON.stringify(entry)
-            : `${entry.timestamp} ${level.toUpperCase()} ${entry.event} ${JSON.stringify(entry)}`;
+            : `[${entry.timestamp}] ${level.toUpperCase()} ${entry.event}${Object.entries(entry)
+                .filter(([key]) => !["timestamp", "level", "event"].includes(key))
+                .map(([key, value]) => {
+                    const formatted = formatDevelopmentValue(value);
+                    return formatted === undefined ? "" : `${key}=${formatted}`;
+                })
+                .filter(Boolean).map(field => ` ${field}`).join("")}`;
         output(line, level);
         return entry;
     };
