@@ -9,12 +9,13 @@ const imageService = require("./imageService");
 const execFileAsync = promisify(execFile);
 
 const extractTextFromImage = async (inputPath, lang = "eng") => {
-    const { data } = await Tesseract.recognize(inputPath, lang);
-
-    return {
-        text: data.text,
-        confidence: data.confidence,
-    };
+    const worker = await Tesseract.createWorker(lang);
+    try {
+        const { data } = await worker.recognize(inputPath, {}, { text: true, tsv: true });
+        return { text: data.text, tsv: data.tsv, confidence: data.confidence };
+    } finally {
+        await worker.terminate();
+    }
 };
 
 const convertToWord = async (inputPath, outputPath, sourceType, lang = "eng") => {
@@ -35,20 +36,20 @@ const convertToWord = async (inputPath, outputPath, sourceType, lang = "eng") =>
             imagePaths = [pngPath];
         }
 
-        const pageTexts = [];
+        const pages = [];
         for (const imagePath of imagePaths) {
             const result = await extractTextFromImage(imagePath, lang);
-            pageTexts.push(result.text);
+            pages.push({ text: result.text, tsv: result.tsv, imagePath });
         }
 
         const textPath = path.join(temporaryDir, "pages.json");
-        await fs.writeFile(textPath, JSON.stringify(pageTexts), "utf8");
+        await fs.writeFile(textPath, JSON.stringify(pages), "utf8");
         await execFileAsync(
             "python",
             [scriptPath, "write-docx", textPath, outputPath],
             { timeout: 60000 }
         );
-        return { outputPath, pageCount: pageTexts.length };
+        return { outputPath, pageCount: pages.length };
     } finally {
         await fs.rm(temporaryDir, { recursive: true, force: true });
     }
