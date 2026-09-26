@@ -126,8 +126,6 @@ def row_groups(values, merges):
 def list_items(values, formulas, merges, first_row, last_row):
     if not 2 <= last_row - first_row <= 12:
         return None
-    if any(start[0] < last_row and end[0] >= first_row for start, end in merges):
-        return None
     if any(first_row <= row < last_row for row, _ in formulas):
         return None
     items = []
@@ -138,11 +136,19 @@ def list_items(values, formulas, merges, first_row, last_row):
         if len(cells) != 1:
             return None
         col, text = cells[0]
+        row_merges = [(start, end) for start, end in merges
+                      if start[0] <= row <= end[0]]
+        if (len(row_merges) > 1 or row_merges and
+                (row_merges[0][0][0] != row or row_merges[0][1][0] != row
+                 or row_merges[0][0][1] != col)):
+            return None
         columns.add(col)
         if "\n" in text or len(text.strip()) > 80:
             return None
         match = re.fullmatch(r"\s*(?:(\d+)[.)]|[-*•])\s+(.+?)\s*", text)
         if not match:
+            return None
+        if not re.search(r"[A-Za-z]", match.group(2)) or re.search(r"\d", match.group(2)):
             return None
         numbers.append(int(match.group(1)) if match.group(1) else None)
         items.append(match.group(2))
