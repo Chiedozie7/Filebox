@@ -20,6 +20,7 @@ const uploadFile = async (req, res) => {
         }
 
         const file = await fileService.saveFile(req.file);
+        if (req.cleanupJob) req.cleanupJob.keepInputs = true;
 
         res.status(201).json(file);
     } catch (error) {
@@ -624,10 +625,10 @@ const batchConvertFiles = async (req, res) => {
             const outputName =
                 `converted-${Date.now()}-${Math.round(Math.random() * 1e9)}.${outputExtension}`;
             const outputPath = path.join("uploads", outputName);
-            temporaryFileCleanup.registerOutput(req, outputPath);
+            temporaryFileCleanup.registerOutput(req, outputPath, { discardOnSuccess: true });
             const source = sources[index];
             if ((source === "docx" || source === "xlsx") && outputFormat === "pdf") {
-                temporaryFileCleanup.registerOutput(req, path.join("uploads", `${path.parse(file.filename).name}.pdf`));
+                temporaryFileCleanup.registerOutput(req, path.join("uploads", `${path.parse(file.filename).name}.pdf`), { discardOnSuccess: true });
             }
             let result;
 

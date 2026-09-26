@@ -5,6 +5,7 @@ const path = require("path");
 const { Transform, pipeline } = require("stream");
 const { PDFDocument } = require("pdf-lib");
 const imageService = require("../services/imageService");
+const temporaryFileCleanup = require("../services/temporaryFileCleanup");
 const limits = require("../config/fileLimits");
 
 const mimeByExt = {
@@ -23,6 +24,7 @@ const policyStorage = (policy) => ({
         const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
         const destination = "uploads/";
         const filePath = path.join(destination, filename);
+        temporaryFileCleanup.registerInput(req, filePath);
         let size = 0;
         const limiter = new Transform({
             transform(chunk, encoding, done) {
@@ -42,13 +44,17 @@ const policyStorage = (policy) => ({
                 done(null, chunk);
             },
         });
+        const abortUpload = () => file.stream.destroy(new Error("Upload aborted"));
+        req.once("aborted", abortUpload);
         pipeline(file.stream, limiter, fsSync.createWriteStream(filePath), async error => {
+            req.off("aborted", abortUpload);
             if (error) {
                 await fs.rm(filePath, { force: true }).catch(() => {});
                 return cb(error);
             }
             cb(null, { destination, filename, path: filePath, size });
         });
+        if (req.aborted) abortUpload();
     },
     _removeFile(req, file, cb) {
         fs.rm(file.path, { force: true }).then(() => cb(null), cb);
@@ -136,14 +142,22 @@ const validateStoredFiles = async (policy, req, res, next) => {
 
 const policyUpload = (policy) => (req, res, next) => {
     req._fileForgeBytes = 0;
-    oneFile(policy, policy.field || "file", policy.maxCount || 1, policy.uploadMax || limits.bytes.pdf)(req, res, (error) => {
-        if (error) {
-            const unexpectedField = error.code === "LIMIT_UNEXPECTED_FILE" && error.field !== (policy.field || "file");
-            const status = unexpectedField ? 400 : ["LIMIT_FILE_SIZE", "LIMIT_TOTAL_SIZE", "LIMIT_FILE_COUNT", "LIMIT_UNEXPECTED_FILE"].includes(error.code) ? 413 : 400;
-            const message = unexpectedField ? `Files must use the multipart field "${policy.field || "file"}"` : error.code === "LIMIT_TOTAL_SIZE" ? `Total uploaded file size exceeds ${displayMb(policy.maxTotal)} MB` : error.code === "LIMIT_FILE_SIZE" ? "Uploaded file exceeds the configured size limit" : "Too many uploaded files";
-            return reject(req, res, status, message);
+    const release = temporaryFileCleanup.holdRequest(req);
+    oneFile(policy, policy.field || "file", policy.maxCount || 1, policy.uploadMax || limits.bytes.pdf)(req, res, async (error) => {
+        try {
+            if (error) {
+                const unexpectedField = error.code === "LIMIT_UNEXPECTED_FILE" && error.field !== (policy.field || "file");
+                const status = unexpectedField ? 400 : ["LIMIT_FILE_SIZE", "LIMIT_TOTAL_SIZE", "LIMIT_FILE_COUNT", "LIMIT_UNEXPECTED_FILE"].includes(error.code) ? 413 : 400;
+                const message = unexpectedField ? `Files must use the multipart field "${policy.field || "file"}"` : error.code === "LIMIT_TOTAL_SIZE" ? `Total uploaded file size exceeds ${displayMb(policy.maxTotal)} MB` : error.code === "LIMIT_FILE_SIZE" ? "Uploaded file exceeds the configured size limit" : "Too many uploaded files";
+                await reject(req, res, status, message);
+                return;
+            }
+            await validateStoredFiles(policy, req, res, next);
+        } catch (error) {
+            next(error);
+        } finally {
+            release();
         }
-        validateStoredFiles(policy, req, res, next).catch(next);
     });
 };
 

@@ -31,9 +31,16 @@ const createCleanupService = ({
 
     const insideUploads = (filePath) => path.dirname(path.resolve(filePath)) === uploadsRoot;
 
-    const registerOutput = (req, filePath) => {
+    const registerInput = (req, filePath) => {
+        if (!insideUploads(filePath)) throw new Error("Uploaded input must be inside uploads");
+        req.cleanupJob?.inputs.add(path.resolve(filePath));
+        return filePath;
+    };
+
+    const registerOutput = (req, filePath, { discardOnSuccess = false } = {}) => {
         if (!insideUploads(filePath)) throw new Error("Generated output must be inside uploads");
         req.cleanupJob?.outputs.add(path.resolve(filePath));
+        if (discardOnSuccess) req.cleanupJob?.discardOnSuccess.add(path.resolve(filePath));
         return filePath;
     };
 
@@ -109,19 +116,20 @@ const createCleanupService = ({
 
     const beginJob = async () => {
         while (sweepPromise) await sweepPromise;
-        const job = { outputs: new Set(), processing: false, responseDone: false, failed: false };
+        const job = { inputs: new Set(), outputs: new Set(), discardOnSuccess: new Set(),
+            processing: 0, responseDone: false, failed: false, keepInputs: false };
         jobs.add(job);
         return job;
     };
 
     const finishJob = async (job, { failed = false, inputPaths = [] } = {}) => {
         if (!jobs.has(job)) return;
-        if (failed) {
-            const paths = [...inputPaths, ...job.outputs].filter(Boolean).map(filePath => path.resolve(filePath));
-            await Promise.all(paths.filter(insideUploads).map(filePath =>
-                fs.rm(filePath, { force: true }).catch(error => logger.error("failed_job_cleanup_failed", { error }))
-            ));
-        }
+        const inputs = job.keepInputs ? [] : [...job.inputs, ...inputPaths];
+        const paths = [...inputs, ...(failed ? job.outputs : job.discardOnSuccess)]
+            .filter(Boolean).map(filePath => path.resolve(filePath));
+        await Promise.all([...new Set(paths)].filter(insideUploads).map(filePath =>
+            fs.rm(filePath, { force: true }).catch(error => logger.error("job_file_cleanup_failed", { error }))
+        ));
         jobs.delete(job);
         if (pendingSweep && !jobs.size) {
             pendingSweep = false;
@@ -153,16 +161,25 @@ const createCleanupService = ({
         }).catch(next);
     };
 
-    const trackProcessing = (handler) => async (req, res, next) => {
+    const holdRequest = (req) => {
         const job = req.cleanupJob;
-        if (job) job.processing = true;
+        if (!job) return () => {};
+        job.processing++;
+        let released = false;
+        return () => {
+            if (released) return;
+            released = true;
+            job.processing--;
+            job.finishIfReady?.();
+        };
+    };
+
+    const trackProcessing = (handler) => async (req, res, next) => {
+        const release = holdRequest(req);
         try {
             return await handler(req, res, next);
         } finally {
-            if (job) {
-                job.processing = false;
-                job.finishIfReady?.();
-            }
+            release();
         }
     };
 
@@ -179,7 +196,8 @@ const createCleanupService = ({
         timer = undefined;
     };
 
-    return { registerOutput, sweep, beginJob, finishJob, trackRequest, trackProcessing, start, stop };
+    return { registerInput, registerOutput, holdRequest, sweep, beginJob, finishJob,
+        trackRequest, trackProcessing, start, stop };
 };
 
 const cleanup = createCleanupService();

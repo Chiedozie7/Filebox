@@ -12,6 +12,14 @@ const app = require("../src/app");
 const ip = "203.0.113.10";
 const otherIp = "203.0.113.11";
 const fixtureDir = path.resolve(__dirname, "../../test-files");
+const waitForFiles = async (expected) => {
+    const sorted = [...expected].sort();
+    for (let attempt = 0; attempt < 100; attempt++) {
+        if (JSON.stringify((await fs.readdir("uploads")).sort()) === JSON.stringify(sorted)) return;
+        await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    assert.deepEqual((await fs.readdir("uploads")).sort(), sorted, "successful merge inputs are removed");
+};
 
 async function request(base, route, options = {}, clientIp = ip) {
     return fetch(`${base}${route}`, {
@@ -34,6 +42,7 @@ async function merge(base, filenames) {
         const listening = app.listen(0, "127.0.0.1", () => resolve(listening));
     });
     const base = `http://127.0.0.1:${server.address().port}`;
+    const generatedOutputs = [];
     try {
         for (let n = 0; n < 59; n++) {
             const response = await request(base, "/files/download/missing-file");
@@ -47,10 +56,15 @@ async function merge(base, filenames) {
         assert.ok(lightBlocked.headers.get("retry-after"));
         assert.equal((await request(base, "/files/download/missing-file", {}, otherIp)).status, 404, "another IP has its own quota");
 
+        const mixedExpected = await fs.readdir("uploads");
         for (let n = 0; n < 3; n++) {
             const response = await merge(base, ["mixed-content.pdf", "landscape.jpg"]);
             assert.equal(response.status, 200, `mixed merge ${n + 1} remains allowed`);
-            assert.ok((await response.json()).merged);
+            const output = (await response.json()).merged;
+            assert.ok(output);
+            generatedOutputs.push(output);
+            mixedExpected.push(output);
+            await waitForFiles(mixedExpected);
         }
         const beforeBlockedMerge = (await fs.readdir("uploads")).sort();
         const mixedBlocked = await merge(base, ["mixed-content.pdf", "landscape.jpg"]);
@@ -58,10 +72,15 @@ async function merge(base, filenames) {
         assert.equal((await mixedBlocked.json()).error, "Rate limit exceeded");
         assert.deepEqual((await fs.readdir("uploads")).sort(), beforeBlockedMerge, "rejected mixed merge removes uploaded files");
 
+        const pdfExpected = await fs.readdir("uploads");
         for (let n = 0; n < 5; n++) {
             const pdfOnly = await merge(base, ["mixed-content.pdf", "supplier-appendix.pdf"]);
             assert.equal(pdfOnly.status, 200, `PDF-only merge ${n + 1} is allowed under the heavy quota`);
-            assert.ok((await pdfOnly.json()).merged);
+            const output = (await pdfOnly.json()).merged;
+            assert.ok(output);
+            generatedOutputs.push(output);
+            pdfExpected.push(output);
+            await waitForFiles(pdfExpected);
         }
         const beforeBlockedPdfMerge = (await fs.readdir("uploads")).sort();
         const pdfMergeBlocked = await merge(base, ["mixed-content.pdf", "supplier-appendix.pdf"]);
@@ -91,5 +110,7 @@ async function merge(base, filenames) {
         console.log("Rate-limit HTTP checks passed");
     } finally {
         await new Promise(resolve => server.close(resolve));
+        await Promise.all(generatedOutputs.filter(name => path.basename(name) === name)
+            .map(name => fs.rm(path.join("uploads", name), { force: true })));
     }
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -41,7 +41,7 @@ const convertOcrToWord = async (req, res) => {
         const lang = req.body.lang || "eng";
         const outputName = `ocr-${Date.now()}.docx`;
         outputPath = path.join("uploads", outputName);
-        temporaryFileCleanup.registerOutput(req, outputPath);
+        temporaryFileCleanup.registerOutput(req, outputPath, { discardOnSuccess: true });
         await ocrService.convertToWord(
             req.file.path,
             outputPath,

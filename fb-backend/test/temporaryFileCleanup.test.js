@@ -80,6 +80,27 @@ const exists = async (filePath) => fs.access(filePath).then(() => true, () => fa
         assert.equal(await exists(failedOutput), false, "failed partial output is removed");
         assert.equal(await exists(outsideFile), true, "files outside uploads are never removed");
 
+        const successfulInput = path.join(uploadsDir, "successful-input.jpg");
+        const successfulOutput = path.join(uploadsDir, "successful-output.jpg");
+        const batchMember = path.join(uploadsDir, "batch-member.jpg");
+        for (const filePath of [successfulInput, successfulOutput, batchMember]) await fs.writeFile(filePath, "fixture");
+        const successfulJob = await service.beginJob();
+        service.registerInput({ cleanupJob: successfulJob }, successfulInput);
+        service.registerOutput({ cleanupJob: successfulJob }, successfulOutput);
+        service.registerOutput({ cleanupJob: successfulJob }, batchMember, { discardOnSuccess: true });
+        await service.finishJob(successfulJob);
+        assert.equal(await exists(successfulInput), false, "successful processing removes its uploaded input");
+        assert.equal(await exists(batchMember), false, "successful batch removes intermediate output");
+        assert.equal(await exists(successfulOutput), true, "named output remains for local download");
+
+        const permanentInput = path.join(uploadsDir, "permanent-upload.jpg");
+        await fs.writeFile(permanentInput, "fixture");
+        const permanentJob = await service.beginJob();
+        service.registerInput({ cleanupJob: permanentJob }, permanentInput);
+        permanentJob.keepInputs = true;
+        await service.finishJob(permanentJob, { failed: true });
+        assert.equal(await exists(permanentInput), true, "database-saved permanent upload survives a lost response");
+
         const app = express();
         app.get("/fail", service.trackRequest, service.trackProcessing(async (req, res) => {
             const input = path.join(uploadsDir, "http-failed-input.pdf");
