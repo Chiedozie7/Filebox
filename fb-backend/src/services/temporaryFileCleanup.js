@@ -30,6 +30,28 @@ const createCleanupService = ({
     let databaseWarningShown = false;
 
     const insideUploads = (filePath) => path.dirname(path.resolve(filePath)) === uploadsRoot;
+    const removeBusyInput = async (filePath) => {
+        for (let attempt = 0; attempt < 20; attempt++) {
+            try {
+                await fs.rm(filePath, { force: true });
+                return;
+            } catch (error) {
+                if (!["EBUSY", "EPERM"].includes(error.code) || attempt === 19) throw error;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+    };
+
+    const removeInputs = async (req) => {
+        const paths = [...(req.cleanupJob?.inputs || []), ...(req.files || []).map(file => file.path)]
+            .filter(Boolean).map(filePath => path.resolve(filePath));
+        await Promise.all([...new Set(paths)].filter(insideUploads).map(removeBusyInput));
+    };
+
+    const retryBusyInputs = (req, res, next) => {
+        if (req.cleanupJob) req.cleanupJob.retryBusyInputs = true;
+        next();
+    };
 
     const registerInput = (req, filePath) => {
         if (!insideUploads(filePath)) throw new Error("Uploaded input must be inside uploads");
@@ -127,8 +149,11 @@ const createCleanupService = ({
         const inputs = job.keepInputs ? [] : [...job.inputs, ...inputPaths];
         const paths = [...inputs, ...(failed ? job.outputs : job.discardOnSuccess)]
             .filter(Boolean).map(filePath => path.resolve(filePath));
+        const inputSet = new Set(inputs.map(filePath => path.resolve(filePath)));
         await Promise.all([...new Set(paths)].filter(insideUploads).map(filePath =>
-            fs.rm(filePath, { force: true }).catch(error => logger.error("job_file_cleanup_failed", { error }))
+            (job.retryBusyInputs && inputSet.has(filePath)
+                ? removeBusyInput(filePath) : fs.rm(filePath, { force: true }))
+                .catch(error => logger.error("job_file_cleanup_failed", { error }))
         ));
         jobs.delete(job);
         if (pendingSweep && !jobs.size) {
@@ -196,8 +221,8 @@ const createCleanupService = ({
         timer = undefined;
     };
 
-    return { registerInput, registerOutput, holdRequest, sweep, beginJob, finishJob,
-        trackRequest, trackProcessing, start, stop };
+    return { registerInput, registerOutput, removeInputs, retryBusyInputs, holdRequest,
+        sweep, beginJob, finishJob, trackRequest, trackProcessing, start, stop };
 };
 
 const cleanup = createCleanupService();

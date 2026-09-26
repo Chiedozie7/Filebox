@@ -3,7 +3,7 @@ const { policies, policyUpload } = require("../middleware/validateUpload");
 const { light, heavy, veryHeavy, mergeLimiter } = require("../middleware/rateLimits");
 const jobQueue = require("../middleware/jobQueue");
 const r2Processing = require("../middleware/r2Processing");
-const { trackProcessing } = require("../services/temporaryFileCleanup");
+const { trackProcessing, retryBusyInputs } = require("../services/temporaryFileCleanup");
 const {
     uploadFile, getFiles, compressImage, resizeImage, convertImage, compressPDF,
     unlockPDF, mergePDFs, splitPDF, convertWordToPdf, convertWordToExcel,
@@ -36,7 +36,7 @@ router.post("/excel/to-pdf", veryHeavy, ...queued(policies.xlsx, jobQueue.veryHe
 router.post("/excel/to-word", veryHeavy, ...queued(policies.xlsx, jobQueue.veryHeavy, convertExcelToWord));
 router.post("/ocr/to-word", veryHeavy, ...queued(policies.ocr, jobQueue.veryHeavy, convertOcrToWord));
 router.post("/convert/batch", heavy, ...queued(policies.batch, jobQueue.heavy, batchConvertFiles));
-router.post("/zip", light, r2Processing.input(policies.zip), trackProcessing(r2Processing.process(policies.zip, zipFiles)));
+router.post("/zip", light, retryBusyInputs, r2Processing.input(policies.zip), trackProcessing(r2Processing.process(policies.zip, zipFiles)));
 router.get("/download/:filename", light, trackProcessing(downloadFile));
 router.get("/", light, trackProcessing(getFiles));
 module.exports = router;

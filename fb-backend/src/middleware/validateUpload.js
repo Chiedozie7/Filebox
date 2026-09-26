@@ -115,7 +115,8 @@ const validateStoredFiles = async (policy, req, res, next) => {
                 await fd.close();
                 if (ext === "pdf" && !head.subarray(0, Math.min(head.length, 8)).includes(Buffer.from("%PDF-"))) return reject(req, res, 400, "File signature does not match PDF");
                 if (limits.imageExtensions.includes(ext)) {
-                    const valid = await imageService.isSupportedStaticImage(file.path, ext === "jpg" ? "jpeg" : ext);
+                    const imageInput = policy.readImagesIntoMemory ? await fs.readFile(file.path) : file.path;
+                    const valid = await imageService.isSupportedStaticImage(imageInput, ext === "jpg" ? "jpeg" : ext);
                     if (!valid) return reject(req, res, 400, "Image signature or format is invalid; only supported static images are allowed");
                 }
                 if (officeExtensions.includes(ext)) {
@@ -167,6 +168,7 @@ const office = (ext) => ({ field:"file", extensions:[ext], maxPerFile:limits.byt
 const ocr = { field:"file", extensions:[...limits.imageExtensions,"pdf"], maxFor:ext=>ext==="pdf"?limits.bytes.ocrPdf:limits.bytes.image, uploadMax:Math.max(limits.bytes.ocrPdf,limits.bytes.image), ocrPages:limits.counts.ocrPages };
 const multiple = (kind) => ({
     field:"files", allowed: kind === "zip" ? limits.allAllowed : limits.allAllowed,
+    readImagesIntoMemory: kind === "zip",
     maxCount:limits.counts[kind], minCount:kind==="merge"?2:1,
     maxTotal:limits.bytes[`${kind}Total`], uploadMax:Math.max(limits.bytes.pdf,limits.bytes.office,limits.bytes.image),
     maxFor:ext=>ext==="pdf"?limits.bytes.pdf:officeExtensions.includes(ext)?limits.bytes.office:limits.bytes.image,

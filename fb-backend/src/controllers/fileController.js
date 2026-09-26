@@ -694,7 +694,7 @@ const zipFiles = async (req, res) => {
                 let validImage = false;
                 try {
                     validImage = await imageService.isSupportedStaticImage(
-                        file.path,
+                        await fs.promises.readFile(file.path),
                         extension === "jpg" ? "jpeg" : extension
                     );
                 } catch {
@@ -732,6 +732,8 @@ const zipFiles = async (req, res) => {
             outputPath,
             entryNames
         );
+        await temporaryFileCleanup.removeInputs(req);
+        if (res.destroyed) return;
 
         res.json({
             message: "Files zipped successfully",
@@ -739,6 +741,8 @@ const zipFiles = async (req, res) => {
             zip: zipName,
         });
     } catch (error) {
+        await temporaryFileCleanup.removeInputs(req).catch(cleanupError =>
+            logger.error("zip_input_cleanup_failed", { error: cleanupError }));
         if (outputPath) {
             await fs.promises.rm(outputPath, { force: true }).catch(() => {});
         }
