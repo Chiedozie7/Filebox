@@ -1,6 +1,7 @@
 const fileService = require("../services/fileService");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("node:crypto");
 const os = require("os");
 const imageService = require("../services/imageService");
 const pdfService = require("../services/pdfService");
@@ -155,11 +156,11 @@ const convertImage = async (req, res) => {
         const outputFormat = format === "jpg" ? "jpeg" : format;
         const outputExtension = format === "jpeg" ? "jpg" : format;
 
-        const outputName = `converted-${Date.now()}.${outputExtension}`;
+        const outputName = `converted-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${outputExtension}`;
         const outputPath = path.join("uploads", outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
 
-        await imageService.convertImage(
+        const conversionResult = await imageService.convertImage(
             req.file.path,
             outputPath,
             outputFormat
@@ -168,8 +169,8 @@ const convertImage = async (req, res) => {
         res.json({
             message: "Image converted successfully",
             original: req.file.filename,
-            converted: outputName,
-            format: outputFormat,
+            converted: path.basename(conversionResult.outputPath),
+            format: conversionResult.format,
         });
     } catch (error) {
         logger.error("controller_failed", { controller: "fileController", error });

@@ -111,35 +111,41 @@ const resizeImage = async (inputPath, outputPath, width, height) => {
 
 const convertImage = async (inputPath, outputPath, format) => {
     const image = sharp(inputPath);
+    let outputInfo;
 
     switch (format) {
         case "jpeg":
-            await image.jpeg().toFile(outputPath);
+            outputInfo = await image.jpeg().toFile(outputPath);
             break;
 
         case "png":
-            await image.png().toFile(outputPath);
+            outputInfo = await image.png().toFile(outputPath);
             break;
 
         case "webp":
-            await image.webp().toFile(outputPath);
+            outputInfo = await image.webp().toFile(outputPath);
             break;
 
         case "avif":
-            await image.avif().toFile(outputPath);
+            outputInfo = await image.avif().toFile(outputPath);
             break;
 
         case "tiff":
-            await image.tiff().toFile(outputPath);
+            outputInfo = await image.tiff().toFile(outputPath);
             break;
 
         case "gif":
-            await image.gif().toFile(outputPath);
+            outputInfo = await image.gif().toFile(outputPath);
             break;
 
         default:
             throw new Error("Unsupported output format");
     }
+
+    return {
+        outputPath,
+        format: outputInfo.format === "heif" ? "avif" : outputInfo.format,
+    };
 };
 
 module.exports = {
