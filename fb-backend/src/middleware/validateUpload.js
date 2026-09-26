@@ -148,7 +148,7 @@ const policyUpload = (policy) => (req, res, next) => {
         try {
             if (error) {
                 const unexpectedField = error.code === "LIMIT_UNEXPECTED_FILE" && error.field !== (policy.field || "file");
-                const status = unexpectedField ? 400 : ["LIMIT_FILE_SIZE", "LIMIT_TOTAL_SIZE", "LIMIT_FILE_COUNT", "LIMIT_UNEXPECTED_FILE"].includes(error.code) ? 413 : 400;
+                const status = ["LIMIT_FILE_SIZE", "LIMIT_TOTAL_SIZE"].includes(error.code) ? 413 : 400;
                 const message = unexpectedField ? `Files must use the multipart field "${policy.field || "file"}"` : error.code === "LIMIT_TOTAL_SIZE" ? `Total uploaded file size exceeds ${displayMb(policy.maxTotal)} MB` : error.code === "LIMIT_FILE_SIZE" ? "Uploaded file exceeds the configured size limit" : "Too many uploaded files";
                 await reject(req, res, status, message);
                 return;

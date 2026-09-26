@@ -7,7 +7,7 @@ const { policyUpload, validateStoredFiles } = require("./validateUpload");
 const logger = require("../services/logger");
 
 const outputFields = ["compressed", "resized", "converted", "unlocked", "merged", "split", "zip"];
-const statusFor = (message) => /size limit|exceeds|too many/i.test(message) ? 413 : 400;
+const statusFor = (message) => /size limit|exceeds/i.test(message) ? 413 : 400;
 
 // Rejections can happen before preflight or before a processing slot is granted.
 const cleanupRejected = (req, res, next) => {
