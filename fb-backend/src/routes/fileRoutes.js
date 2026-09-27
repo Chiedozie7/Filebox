@@ -18,6 +18,13 @@ const router = express.Router();
 router.use(r2Processing.cleanupRejected);
 const queued = (policy, queue, controller) => [r2Processing.input(policy), queue,
     jobQueue.run(trackProcessing(r2Processing.process(policy, controller)))];
+// Guard these routes against downstream work if the limiter has already sent
+// its rejection response.
+const pptxVeryHeavy = (req, res, next) => veryHeavy(req, res, (error) => {
+    if (error) return next(error);
+    if (res.headersSent || res.writableEnded || res.destroyed) return;
+    next();
+});
 router.post("/r2/upload-url", light, createUploadUrl);
 router.post("/r2/download-url", light, createDownloadUrl);
 router.post("/upload", light, policyUpload({ ...policies.zip, field: "file", maxCount: 1 }), trackProcessing(uploadFile));
@@ -31,8 +38,8 @@ router.post("/pdf/merge", r2Processing.input(policies.merge), mergeLimiter, jobQ
 router.post("/pdf/split", heavy, ...queued(policies.pdf, jobQueue.heavy, splitPDF));
 router.post("/pdf/to-word", veryHeavy, ...queued(policies.pdf, jobQueue.veryHeavy, convertPdfToWord));
 router.post("/pdf/to-excel", veryHeavy, ...queued(policies.pdf, jobQueue.veryHeavy, convertPdfToExcel));
-router.post("/pdf/to-pptx", veryHeavy, ...queued(policies.pdf, jobQueue.veryHeavy, convertPdfToPptx));
-router.post("/pptx/to-pdf", veryHeavy, ...queued(policies.pptx, jobQueue.veryHeavy, convertPptxToPdf));
+router.post("/pdf/to-pptx", pptxVeryHeavy, ...queued(policies.pdf, jobQueue.veryHeavy, convertPdfToPptx));
+router.post("/pptx/to-pdf", pptxVeryHeavy, ...queued(policies.pptx, jobQueue.veryHeavy, convertPptxToPdf));
 router.post("/word/to-pdf", veryHeavy, ...queued(policies.docx, jobQueue.veryHeavy, convertWordToPdf));
 router.post("/word/to-excel", veryHeavy, ...queued(policies.docx, jobQueue.veryHeavy, convertWordToExcel));
 router.post("/excel/to-pdf", veryHeavy, ...queued(policies.xlsx, jobQueue.veryHeavy, convertExcelToPdf));
