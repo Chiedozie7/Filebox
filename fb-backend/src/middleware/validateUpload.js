@@ -12,6 +12,7 @@ const mimeByExt = {
     pdf: ["application/pdf"],
     docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
     xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    pptx: ["application/vnd.openxmlformats-officedocument.presentationml.presentation"],
     jpg: ["image/jpeg"], jpeg: ["image/jpeg"], png: ["image/png"],
     webp: ["image/webp"], avif: ["image/avif", "image/heif"],
     tiff: ["image/tiff"],
@@ -121,7 +122,7 @@ const validateStoredFiles = async (policy, req, res, next) => {
                 }
                 if (officeExtensions.includes(ext)) {
                     if (head.subarray(0, 2).toString() !== "PK") return reject(req, res, 400, `File signature does not match ${ext.toUpperCase()}`);
-                    const entries = ext === "docx" ? ["[Content_Types].xml", "word/document.xml"] : ["[Content_Types].xml", "xl/workbook.xml"];
+                    const entries = ["[Content_Types].xml", { docx: "word/document.xml", xlsx: "xl/workbook.xml", pptx: "ppt/presentation.xml" }[ext]];
                     const names = zipEntries(await fs.readFile(file.path));
                     if (!entries.every(entry => names.has(entry))) return reject(req, res, 400, `File is not a valid ${ext.toUpperCase()} package`);
                 }
@@ -167,11 +168,11 @@ const pdf = { field:"file", extensions:["pdf"], maxPerFile:limits.bytes.pdf, upl
 const office = (ext) => ({ field:"file", extensions:[ext], maxPerFile:limits.bytes.office, uploadMax:limits.bytes.office });
 const ocr = { field:"file", extensions:[...limits.imageExtensions,"pdf"], maxFor:ext=>ext==="pdf"?limits.bytes.ocrPdf:limits.bytes.image, uploadMax:Math.max(limits.bytes.ocrPdf,limits.bytes.image), ocrPages:limits.counts.ocrPages };
 const multiple = (kind) => ({
-    field:"files", allowed: kind === "zip" ? limits.allAllowed : limits.allAllowed,
+    field:"files", allowed: kind === "merge" ? limits.allAllowed.filter(ext => ext !== "pptx") : limits.allAllowed,
     readImagesIntoMemory: kind === "zip",
     maxCount:limits.counts[kind], minCount:kind==="merge"?2:1,
     maxTotal:limits.bytes[`${kind}Total`], uploadMax:Math.max(limits.bytes.pdf,limits.bytes.office,limits.bytes.image),
     maxFor:ext=>ext==="pdf"?limits.bytes.pdf:officeExtensions.includes(ext)?limits.bytes.office:limits.bytes.image,
 });
-const officeExtensions = limits.allAllowed.filter(ext=>["docx","xlsx"].includes(ext));
-module.exports = { policyUpload, validateStoredFiles, policies:{ images, pdf, docx:office("docx"), xlsx:office("xlsx"), ocr, merge:multiple("merge"), batch:multiple("batch"), zip:multiple("zip") } };
+const officeExtensions = limits.allAllowed.filter(ext=>["docx","xlsx","pptx"].includes(ext));
+module.exports = { policyUpload, validateStoredFiles, policies:{ images, pdf, docx:office("docx"), xlsx:office("xlsx"), pptx:office("pptx"), ocr, merge:multiple("merge"), batch:multiple("batch"), zip:multiple("zip") } };

@@ -16,10 +16,11 @@ const mimeByExtension = {
     pdf: "application/pdf",
     docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp",
     avif: "image/avif", tiff: "image/tiff", zip: "application/zip",
 };
-const keyPattern = /^temp\/(input|output)\/[0-9a-f]{32}\.(pdf|docx|xlsx|jpg|jpeg|png|webp|avif|tiff|zip)$/;
+const keyPattern = /^temp\/(input|output)\/[0-9a-f]{32}\.(pdf|docx|xlsx|pptx|jpg|jpeg|png|webp|avif|tiff|zip)$/;
 const safeName = (name) => typeof name === "string" && name.length > 0 && name.length <= 255 &&
     name === path.basename(name) && !/[\\/\x00-\x1f]/.test(name);
 const validKey = (key, kind) => typeof key === "string" && keyPattern.test(key) &&

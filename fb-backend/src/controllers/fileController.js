@@ -7,6 +7,7 @@ const imageService = require("../services/imageService");
 const pdfService = require("../services/pdfService");
 const wordService = require("../services/wordService");
 const excelService = require("../services/excelService");
+const presentationService = require("../services/presentationService");
 const zipService = require("../services/zipService");
 const temporaryFileCleanup = require("../services/temporaryFileCleanup");
 const logger = require("../services/logger");
@@ -591,7 +592,7 @@ const batchConvertFiles = async (req, res) => {
             "tiff",
         ];
 
-        if (!format || ![...imageFormats, "pdf", "docx", "xlsx"].includes(format)) {
+        if (!format || ![...imageFormats, "pdf", "docx", "xlsx", "pptx"].includes(format)) {
             return res.status(400).json({
                 error: "Unsupported output format",
             });
@@ -600,7 +601,8 @@ const batchConvertFiles = async (req, res) => {
         const outputFormat = format === "jpg" ? "jpeg" : format;
         const outputExtension = format === "jpeg" ? "jpg" : format;
         const officeConversions = {
-            pdf: ["docx", "xlsx"],
+            pdf: ["docx", "xlsx", "pptx"],
+            pptx: ["pdf"],
             docx: ["pdf", "xlsx"],
             xlsx: ["pdf", "docx"],
         };
@@ -628,7 +630,7 @@ const batchConvertFiles = async (req, res) => {
             const outputPath = path.join("uploads", outputName);
             temporaryFileCleanup.registerOutput(req, outputPath, { discardOnSuccess: true });
             const source = sources[index];
-            if ((source === "docx" || source === "xlsx") && outputFormat === "pdf") {
+            if (["docx", "xlsx", "pptx"].includes(source) && outputFormat === "pdf") {
                 temporaryFileCleanup.registerOutput(req, path.join("uploads", `${path.parse(file.filename).name}.pdf`), { discardOnSuccess: true });
             }
             let result;
@@ -647,6 +649,10 @@ const batchConvertFiles = async (req, res) => {
                 result = await excelService.convertExcelToPdf(file.path, "uploads");
             } else if (source === "xlsx" && outputFormat === "docx") {
                 result = await excelService.convertExcelToWord(file.path, outputPath);
+            } else if (source === "pdf" && outputFormat === "pptx") {
+                result = await presentationService.convertPdfToPptx(file.path, outputPath);
+            } else if (source === "pptx" && outputFormat === "pdf") {
+                result = await presentationService.convertPptxToPdf(file.path, "uploads");
             }
 
             convertedPaths.push(result?.outputPath || outputPath);
@@ -679,7 +685,7 @@ const zipFiles = async (req, res) => {
         }
 
         const supportedImages = ["jpg", "jpeg", "png", "webp", "avif", "tiff"];
-        const supported = ["pdf", "docx", "xlsx", ...supportedImages];
+        const supported = ["pdf", "docx", "xlsx", "pptx", ...supportedImages];
         const entryNames = [];
         const usedNames = new Map();
 

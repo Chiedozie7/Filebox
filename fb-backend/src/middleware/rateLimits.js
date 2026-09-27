@@ -45,11 +45,20 @@ const mergeLimiter = (req, res, next) => {
     return (getMergeClass(req) === "veryHeavy" ? veryHeavy : heavy)(req, res, next);
 };
 
+const getBatchClass = (req) => req.body?.format?.toLowerCase() === "pptx" ||
+    req.files?.some(file => path.extname(file.originalname).toLowerCase() === ".pptx") ? "veryHeavy" : "heavy";
+const batchLimiter = (req, res, next) => {
+    req.rateLimitCleanupFiles = req.files?.filter(file => file.path);
+    return (getBatchClass(req) === "veryHeavy" ? veryHeavy : heavy)(req, res, next);
+};
+
 module.exports = {
     light,
     heavy,
     veryHeavy,
     mergeLimiter,
     getMergeClass,
+    getBatchClass,
+    batchLimiter,
     trustedProxyHops: positiveInteger("TRUST_PROXY_HOPS", 0),
 };

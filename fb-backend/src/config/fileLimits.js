@@ -8,7 +8,7 @@ const count = (name, fallback) => {
 };
 
 const imageExtensions = ["jpg", "jpeg", "png", "webp", "avif", "tiff"];
-const officeExtensions = ["docx", "xlsx"];
+const officeExtensions = ["docx", "xlsx", "pptx"];
 const allAllowed = ["pdf", ...officeExtensions, ...imageExtensions];
 
 module.exports = {

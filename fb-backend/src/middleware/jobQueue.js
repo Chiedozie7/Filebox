@@ -1,4 +1,4 @@
-const { getMergeClass } = require("./rateLimits");
+const { getMergeClass, getBatchClass } = require("./rateLimits");
 const logger = require("../services/logger");
 
 const positiveInteger = (name, fallback) => {
@@ -96,6 +96,7 @@ const createJobQueue = ({ heavyConcurrency = defaults.heavyConcurrency,
         heavy: acquire("heavy"),
         veryHeavy: acquire("veryHeavy"),
         merge: acquire(getMergeClass),
+        batch: acquire(getBatchClass),
         run,
         stats: () => ({
             heavy: { active: classes.heavy.active, waiting: classes.heavy.waiting.length },

@@ -1,6 +1,6 @@
 const express = require("express");
 const { policies, policyUpload } = require("../middleware/validateUpload");
-const { light, heavy, veryHeavy, mergeLimiter } = require("../middleware/rateLimits");
+const { light, heavy, veryHeavy, mergeLimiter, batchLimiter } = require("../middleware/rateLimits");
 const jobQueue = require("../middleware/jobQueue");
 const r2Processing = require("../middleware/r2Processing");
 const { trackProcessing, retryBusyInputs } = require("../services/temporaryFileCleanup");
@@ -12,6 +12,7 @@ const {
 const { convertPdfToWord, convertPdfToExcel } = require("../controllers/pdfController");
 const { convertOcrToWord } = require("../controllers/ocrController");
 const { createUploadUrl, createDownloadUrl } = require("../controllers/r2Controller");
+const { convertPptxToPdf, convertPdfToPptx } = require("../controllers/presentationController");
 
 const router = express.Router();
 router.use(r2Processing.cleanupRejected);
@@ -30,12 +31,15 @@ router.post("/pdf/merge", r2Processing.input(policies.merge), mergeLimiter, jobQ
 router.post("/pdf/split", heavy, ...queued(policies.pdf, jobQueue.heavy, splitPDF));
 router.post("/pdf/to-word", veryHeavy, ...queued(policies.pdf, jobQueue.veryHeavy, convertPdfToWord));
 router.post("/pdf/to-excel", veryHeavy, ...queued(policies.pdf, jobQueue.veryHeavy, convertPdfToExcel));
+router.post("/pdf/to-pptx", veryHeavy, ...queued(policies.pdf, jobQueue.veryHeavy, convertPdfToPptx));
+router.post("/pptx/to-pdf", veryHeavy, ...queued(policies.pptx, jobQueue.veryHeavy, convertPptxToPdf));
 router.post("/word/to-pdf", veryHeavy, ...queued(policies.docx, jobQueue.veryHeavy, convertWordToPdf));
 router.post("/word/to-excel", veryHeavy, ...queued(policies.docx, jobQueue.veryHeavy, convertWordToExcel));
 router.post("/excel/to-pdf", veryHeavy, ...queued(policies.xlsx, jobQueue.veryHeavy, convertExcelToPdf));
 router.post("/excel/to-word", veryHeavy, ...queued(policies.xlsx, jobQueue.veryHeavy, convertExcelToWord));
 router.post("/ocr/to-word", veryHeavy, ...queued(policies.ocr, jobQueue.veryHeavy, convertOcrToWord));
-router.post("/convert/batch", heavy, ...queued(policies.batch, jobQueue.heavy, batchConvertFiles));
+router.post("/convert/batch", r2Processing.input(policies.batch), batchLimiter, jobQueue.batch,
+    jobQueue.run(trackProcessing(r2Processing.process(policies.batch, batchConvertFiles))));
 router.post("/zip", light, retryBusyInputs, r2Processing.input(policies.zip), trackProcessing(r2Processing.process(policies.zip, zipFiles)));
 router.get("/download/:filename", light, trackProcessing(downloadFile));
 router.get("/", light, trackProcessing(getFiles));
