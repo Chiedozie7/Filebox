@@ -2,19 +2,11 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type KeyboardEvent } from "react";
 import {
-  acceptForTool, availableFormats, downloadResult, idleState,
+  availableFormats, downloadResult, idleState,
   normalizeError, runTool, tools, validateFiles, type OptionName,
   type ProcessingState, type ToolId,
 } from "@/lib/filebox";
-
-const size = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-const resultSize = (bytes: number) => bytes < 1024 ? `${bytes} B` :
-  bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-const labels: Record<OptionName, string> = {
-  width: "Width (pixels)", height: "Height (pixels)", format: "Output format",
-  password: "PDF password", startPage: "First page", endPage: "Last page",
-  lang: "OCR language code",
-};
+import { Dropzone, ProcessingResult, SelectedFileList, ToolOptions } from "@/components/tool-workspace-parts";
 
 export default function ToolWorkspace({ tool }: { tool: ToolId }) {
   const config = tools[tool];
@@ -125,95 +117,18 @@ export default function ToolWorkspace({ tool }: { tool: ToolId }) {
 
   return (
     <form onSubmit={submit} className="tool-form">
-      <section aria-labelledby="files-heading">
-        <h2 id="files-heading">Files</h2>
-        <label className="drop-zone" role="button" tabIndex={busy ? -1 : 0} aria-disabled={busy}
-          onKeyDown={onPickerKeyDown} onDragOver={event => event.preventDefault()} onDrop={onDrop}>
-          <p>Drag and drop {config.multiple ? "files" : "a file"} here, or choose from your device.</p>
-          <span className="choose-button">Choose {config.multiple ? "files" : "file"}</span>
-          <input ref={inputRef} className="visually-hidden" type="file" accept={acceptForTool(tool)} multiple={config.multiple}
-            onChange={onPick} disabled={busy} aria-label="Choose files" />
-        </label>
-        <p className="hint">Accepted: {config.acceptedExtensions.map(ext => `.${ext}`).join(", ")}.
-          {` ${config.minFiles === config.limits.maxFiles ? config.minFiles : `${config.minFiles}–${config.limits.maxFiles}`} file(s), up to ${size(config.limits.maxTotalBytes)} total.`}
-          {config.limits.maxPdfPages ? ` PDF OCR is limited to ${config.limits.maxPdfPages} pages.` : ""}
-        </p>
-        {files.length > 0 && (
-          <ol className="selected-files">
-            {files.map((file, index) => (
-              <li key={`${file.name}-${file.lastModified}-${index}`}>
-                <span>{file.name} <small>({size(file.size)})</small></span>
-                <span className="file-actions">
-                  {config.multiple && <>
-                    <button type="button" onClick={() => move(index, -1)} disabled={busy || index === 0} aria-label={`Move ${file.name} up`}>Up</button>
-                    <button type="button" onClick={() => move(index, 1)} disabled={busy || index === files.length - 1} aria-label={`Move ${file.name} down`}>Down</button>
-                  </>}
-                  <button type="button" onClick={() => remove(index)} disabled={busy} aria-label={`Remove ${file.name}`}>Remove</button>
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
+      <section className="form-panel" aria-labelledby="files-heading"><div className="form-panel-heading"><span className="step-number">01</span>
+        <div><h2 id="files-heading">Add your {config.multiple ? "files" : "file"}</h2><p>Select what you want to process.</p></div></div>
+        <Dropzone tool={tool} busy={busy} inputRef={inputRef} onPick={onPick} onDrop={onDrop} onKeyDown={onPickerKeyDown} />
+        <SelectedFileList files={files} multiple={config.multiple} busy={busy} remove={remove} move={move} />
       </section>
-
-      {config.options.length > 0 && (
-        <section aria-labelledby="options-heading">
-          <h2 id="options-heading">Options</h2>
-          <div className="option-grid">
-            {config.options.map(name => (
-              <label key={name}>
-                <span>{labels[name]}</span>
-                {name === "format" ? (
-                  <select value={options.format ?? ""} onChange={event => setOption("format", event.target.value)}
-                    disabled={busy} required>
-                    <option value="">Select format</option>
-                    {formats.map(format => <option key={format} value={format}>{format.toUpperCase()}</option>)}
-                  </select>
-                ) : (
-                  <input type={name === "password" ? "password" : ["width", "height", "startPage", "endPage"].includes(name) ? "number" : "text"}
-                    min={["width", "height", "startPage", "endPage"].includes(name) ? 1 : undefined}
-                    value={options[name] ?? ""} onChange={event => setOption(name, event.target.value)}
-                    disabled={busy} required={name === "startPage" || name === "endPage"} />
-                )}
-              </label>
-            ))}
-          </div>
-          {tool === "batch-convert" && files.length > 0 && formats.length === 0 &&
-            <p role="alert">The selected file types have no shared output format. Remove a file or use separate conversions.</p>}
-        </section>
-      )}
-
+      <ToolOptions tool={tool} files={files} formats={formats} options={options} busy={busy} setOption={setOption} />
       <div className="form-actions">
-        <button type="submit" disabled={busy}>{busy ? "Working…" : "Process files"}</button>
-        {state.status === "error" && <button type="button" onClick={() => void submit()}>Retry</button>}
-        <button type="button" onClick={reset}>Reset</button>
+        <button type="submit" className="primary-button" disabled={busy}>{busy ? "Working…" : "Process files"} <span aria-hidden="true">→</span></button>
+        {state.status === "error" && <button type="button" className="secondary-button" onClick={() => void submit()}>Retry</button>}
+        <button type="button" className="ghost-button" onClick={reset}>Reset</button>
       </div>
-
-      <div aria-live="polite" className="status">
-        {state.status === "preparing" && <p>Preparing your files…</p>}
-        {state.status === "uploading" && <p>Uploading files…</p>}
-        {state.status === "processing" && <p>Processing your files…</p>}
-        {state.status === "finalizing" && <p>Finalizing your result…</p>}
-        {stillWorking && state.status === "processing" && <p>Still working — larger files can take a little longer.</p>}
-        {state.status === "error" && <p role="alert">{state.error.message}{state.error.detail ? ` ${state.error.detail}` : ""}</p>}
-        {state.status === "success" && <div>
-          <p>{state.result.message}</p>
-          <p>{state.result.filename}</p>
-          {state.result.compression && <div className="compression-result">
-            <p>Original size: {resultSize(state.result.compression.originalBytes)}</p>
-            {state.result.compression.outputBytes !== undefined &&
-              <p>Output size: {resultSize(state.result.compression.outputBytes)}</p>}
-            {state.result.compression.retainedOriginal
-              ? <p>No size reduction. The original file was retained.</p>
-              : state.result.compression.savedPercent !== undefined
-                ? <p>Saved: {state.result.compression.savedPercent}%</p>
-                : state.result.compression.outputBytes !== undefined &&
-                  <p>No size reduction.</p>}
-          </div>}
-          <button type="button" onClick={() => void download()}>Download {state.result.filename}</button>
-        </div>}
-        {downloadError && <p role="alert">{downloadError}</p>}
-      </div>
+      <ProcessingResult state={state} stillWorking={stillWorking} downloadError={downloadError} download={() => void download()} />
     </form>
   );
 }
