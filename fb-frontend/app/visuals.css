@@ -1,0 +1,163 @@
+/* Shared motion language: calm eight-second cycles, short transfers, and restrained category glows. */
+.capability-visual { position:relative; display:flex; align-items:center; justify-content:center; width:100%; min-height:310px; overflow:hidden; isolation:isolate; }
+.motion-scene::before { content:""; position:absolute; z-index:-1; width:62%; aspect-ratio:1; border-radius:50%; background:var(--scene-glow,#6d91ff20); filter:blur(42px); pointer-events:none; }
+.workflow-slide:not(.is-active) .motion-scene * { animation-play-state:paused !important; }
+
+/* A file moving through task states. */
+.hero-visual { --scene-glow:#6d91ff2a; min-height:410px; transform:perspective(850px) rotateY(-8deg); }
+.hero-visual .document-stack { scale:.82; }
+.document-stack { position:absolute; width:220px; height:295px; border:1px solid #747e91; border-radius:11px; box-shadow:0 30px 55px #0008; }
+.stack-back { background:#2c3650; transform:translate(70px,-35px) rotate(14deg); animation:hero-back 12s ease-in-out infinite; }
+.stack-mid { background:#34333f; transform:translate(-45px,4px) rotate(-9deg); animation:hero-mid 12s ease-in-out infinite; }
+.stack-front { padding:25px; color:#1e2940; background:#ebeef1; transform:translate(12px,15px) rotate(3deg); animation:hero-front 8s ease-in-out infinite; }
+.doc-top { display:flex; justify-content:space-between; color:#4a648a; font-size:9px; font-weight:900; letter-spacing:.15em; margin-bottom:31px; }
+.doc-top span:last-child { color:#6b80ae; }
+.doc-line { height:6px; width:72%; margin-bottom:11px; border-radius:5px; background:#b0b8c7; }
+.doc-line.wide { width:92%; height:11px; background:#2a3b5b; }.doc-line.medium { width:60%; }.doc-line.short { width:37%; }
+.doc-chart { display:flex; align-items:end; gap:8px; height:78px; margin:20px 0; border-bottom:1px solid #b2bac8; }
+.doc-chart i { width:23px; background:#8ca7da; border-radius:3px 3px 0 0; }
+.doc-chart i:nth-child(1){height:26px}.doc-chart i:nth-child(2){height:49px}.doc-chart i:nth-child(3){height:37px}.doc-chart i:nth-child(4){height:62px;background:#e77c78}
+.hero-file-states { position:absolute; right:25px; bottom:21px; width:44px; height:21px; border-radius:4px; background:#e5e9f1; }
+.hero-file-states span { position:absolute; inset:0; display:grid; place-items:center; border-radius:4px; opacity:0; color:#e06666; background:#f6dfdf; font-size:9px; font-weight:900; animation:hero-state 12s linear infinite; }
+.hero-file-states span:nth-child(2) { color:#4474be; background:#dfebff; animation-delay:3s; }
+.hero-file-states span:nth-child(3) { color:#2f9b65; background:#d9f3e2; animation-delay:6s; }
+.hero-file-states span:nth-child(4) { color:#2b9d8b; background:#d7f1ed; animation-delay:9s; }
+.hero-orbit { position:absolute; color:#91aaff; text-shadow:0 0 18px #7998ff9a; }
+.hero-orbit-one { top:17%; right:12%; font-size:24px; animation:orbit-nudge 8s ease-in-out infinite; }
+.hero-orbit-two { bottom:19%; left:13%; font-size:18px; animation:orbit-nudge 8s ease-in-out -3s infinite; }
+.hero-next-step { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); padding:6px 10px; border:1px solid #6d91ff55; border-radius:100px; color:#b8caff; background:#18253acc; font-size:8px; font-weight:900; letter-spacing:.18em; white-space:nowrap; }
+
+/* PDF pages fan out, then resolve into one result. */
+.pdf-visual { --scene-glow:#fb746d28; min-height:450px; height:100%; background:radial-gradient(circle at 36% 48%,#4b303746,transparent 62%); }
+.pdf-page-deck { position:absolute; left:15%; top:23%; width:130px; height:175px; }
+.pdf-page { position:absolute; inset:0; display:block; width:130px; height:175px; padding:24px 18px; border:1px solid #f3b5af; border-radius:8px; background:#f2e9e8; box-shadow:0 19px 30px #0007; transform-origin:50% 90%; }
+.pdf-page:before { content:"PDF"; display:block; margin-bottom:26px; color:#c85d59; font-size:12px; font-weight:900; }
+.pdf-page i { display:block; height:6px; margin:9px 0; border-radius:4px; background:#b0aeb8; }.pdf-page i:nth-child(3) { width:65%; }
+.pdf-page.page-one { animation:pdf-page-one 9s ease-in-out infinite; }
+.pdf-page.page-two { background:#dddde6; animation:pdf-page-two 9s ease-in-out infinite; }
+.pdf-page.page-three { background:#d1d8e7; animation:pdf-page-three 9s ease-in-out infinite; }
+.pdf-flow-line { position:absolute; left:51%; top:47%; width:18%; border-top:1px dashed #f9a29b; animation:transfer-pulse 9s ease-in-out infinite; }
+.pdf-flow-line:after { content:"›"; position:absolute; right:-8px; top:-15px; color:#f9a29b; font-size:22px; }
+.pdf-output { position:absolute; right:10%; top:36%; display:flex; flex-direction:column; align-items:center; justify-content:center; width:94px; height:124px; border:1px solid #e68b85; border-radius:9px; color:#ffd7d3; background:#5a3439; box-shadow:0 15px 35px #0006,0 0 32px #fb746d21; animation:pdf-result 9s ease-in-out infinite; }
+.pdf-output strong { font-size:22px; }.pdf-output span { margin-top:10px; font-size:8px; font-weight:800; letter-spacing:.12em; }
+.pdf-operations { position:absolute; bottom:28px; left:7%; right:7%; display:flex; justify-content:space-between; gap:8px; color:#e4b3af; font-size:9px; font-weight:900; letter-spacing:.12em; }
+.pdf-operations span { opacity:.55; animation:operation-highlight 9s linear infinite; }.pdf-operations span:nth-child(2){animation-delay:3s}.pdf-operations span:nth-child(3){animation-delay:6s}
+
+/* One local photograph carries the before/after comparison. */
+.image-visual { --scene-glow:#55d7aa24; min-height:350px; justify-content:space-around; gap:12px; padding:22px; border:1px solid #40524c; border-radius:19px; background:#1c2827; box-shadow:inset 0 0 50px #0002; }
+.image-preview { position:relative; z-index:1; width:45%; max-width:255px; padding:8px; border:1px solid #587668; border-radius:12px; background:#263a35; box-shadow:0 18px 35px #0008; }
+.image-preview-before { transform:rotate(-4deg); animation:image-before 9s ease-in-out infinite; }
+.image-preview-after { width:40%; border-color:#78cdb0; transform:rotate(4deg) translateY(12px); animation:image-after 9s ease-in-out infinite; }
+.image-photo { position:relative; height:185px; overflow:hidden; border-radius:6px; background:#45726b; }
+.image-photo img { object-fit:cover; object-position:center; }
+.image-preview-before .image-photo img { filter:saturate(.88) contrast(.95); }.image-preview-after .image-photo img { filter:saturate(1.1) contrast(1.04); }
+.image-preview-after .image-photo:after { content:""; position:absolute; inset:0; border-left:2px solid #c2fff0; background:#ffffff0d; clip-path:inset(0 100% 0 0); animation:image-wipe 9s ease-in-out infinite; }
+.image-caption { display:flex; justify-content:space-between; flex-wrap:wrap; gap:3px; margin-top:10px; color:#e5f5ee; font-size:10px; }
+.image-caption span { color:#bdd6c9; }.image-preview-after .image-caption span { color:#81e1b9; }
+.image-transfer { z-index:2; display:flex; flex-direction:column; align-items:center; color:#9deccc; font-size:9px; font-weight:900; letter-spacing:.1em; text-align:center; white-space:nowrap; }
+.image-transfer i { font-style:normal; font-size:25px; animation:transfer-arrow 9s ease-in-out infinite; }
+.image-measure { position:absolute; z-index:0; border-color:#77cda9; opacity:.6; }.measure-top { right:10%; top:15%; width:29%; border-top:1px dashed; }.measure-side { right:8%; top:18%; height:49%; border-right:1px dashed; }
+
+/* Documents travel across a small network of formats. */
+.office-visual { --scene-glow:#6d91ff20; min-height:380px; border:1px solid #3e4555; border-radius:19px; background:#1e2430; }
+.office-orbit { position:relative; width:310px; height:295px; }
+.orbit-line { position:absolute; left:52px; top:50px; width:205px; height:195px; border:1px dashed #6c768b; border-radius:50%; transform:rotate(30deg); animation:orbit-turn 30s linear infinite; }
+.orbit-two { transform:rotate(-30deg); animation-direction:reverse; }
+.office-node { position:absolute; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; width:60px; height:70px; border:1px solid currentColor; border-radius:9px; background:#282f3a; box-shadow:0 15px 25px #0006; font-size:21px; font-weight:900; animation:node-glow 10s ease-in-out infinite; }
+.office-node small { margin-top:3px; font-size:7px; letter-spacing:.08em; }.node-word { top:14px; left:17px; color:var(--word); }.node-excel { top:14px; right:17px; color:var(--excel); animation-delay:2.5s; }.node-pdf { bottom:10px; left:20px; color:var(--pdf); font-size:15px; animation-delay:5s; }.node-pptx { bottom:10px; right:20px; color:var(--pptx); animation-delay:7.5s; }
+.orbit-center { position:absolute; left:126px; top:119px; z-index:2; display:grid; place-items:center; width:58px; height:58px; border:1px solid #8299c8; border-radius:50%; color:#bdd1ff; background:#354665; box-shadow:0 0 28px #6d91ff32; font-size:26px; }
+.office-route { position:absolute; z-index:3; left:0; top:0; width:8px; height:8px; border-radius:50%; background:#9bb8ff; box-shadow:0 0 14px #9bb8ff; animation:office-flow 10s ease-in-out infinite; }.route-two { background:#88e4aa; box-shadow:0 0 14px #88e4aa; animation-delay:-5s; }
+.office-caption,.convert-caption,.compress-caption,.scan-label { position:absolute; bottom:18px; color:#a8b8d9; font-size:8px; font-weight:900; letter-spacing:.15em; white-space:nowrap; }
+
+/* A single format transforms into an editable destination in the workflow card. */
+.convert-visual { --scene-glow:#6d91ff23; gap:30px; background:#202737; }
+.convert-file { width:95px; height:130px; padding:17px 13px; border:1px solid currentColor; border-radius:7px; background:#263344; box-shadow:0 13px 24px #0006; }
+.convert-file span { display:block; margin-bottom:25px; font-size:16px; font-weight:900; }.convert-file i { display:block; width:85%; height:5px; margin-top:8px; border-radius:4px; background:#8d9aaa; }.convert-file i:last-child{width:53%}
+.convert-source { color:var(--pdf); transform:rotate(-7deg); animation:convert-source 8s ease-in-out infinite; }.convert-destination { color:var(--word); transform:rotate(6deg); animation:convert-destination 8s ease-in-out infinite; }
+.convert-path { position:relative; width:45px; border-top:1px dashed #94a8d0; color:#9bb8ff; }.convert-path b { position:absolute; right:-4px; top:-18px; font-size:22px; }.convert-path i { position:absolute; top:-4px; left:0; width:7px; height:7px; border-radius:50%; background:#bdd1ff; box-shadow:0 0 14px #a6c0ff; animation:convert-token 8s ease-in-out infinite; }
+
+/* A scan beam reveals text and a ruled table, then editable output. */
+.scans-visual { --scene-glow:#b89aff27; min-height:340px; gap:20px; border:1px solid #50475d; border-radius:18px; background:#282331; }
+.scan-page,.scan-output { position:relative; width:155px; height:220px; padding:20px; border-radius:6px; box-shadow:0 20px 25px #0008; }
+.scan-page { overflow:hidden; background:#d8d7de; transform:rotate(-6deg); }.scan-output { background:#f0eef5; transform:rotate(5deg); animation:editable-arrive 7s ease-in-out infinite; }
+.scan-heading,.scan-text,.editable-line { height:7px; margin:11px 0; border-radius:4px; background:#9296a4; }.scan-heading { width:80%; height:10px; margin-bottom:23px; background:#677080; }.scan-text.short,.editable-line.short { width:52%; }.editable-line.medium { width:72%; }
+.scan-table { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; height:55px; margin:17px 0 14px; border:2px solid #8c8996; }.scan-table i { border:1px solid #a6a4ad; }
+.scan-beam { position:absolute; z-index:3; top:20px; left:8px; right:8px; height:2px; background:#b89aff; box-shadow:0 0 14px 5px #b89aff6b; animation:scan-sweep 7s ease-in-out infinite; }
+.detection-box { position:absolute; z-index:2; left:14px; right:14px; border:1px solid #785ca3; border-radius:3px; opacity:0; animation:detect-reveal 7s ease-in-out infinite; }.detect-text { top:47px; height:49px; }.detect-table { top:109px; height:68px; animation-delay:.6s; }
+.scan-stamp { position:absolute; left:18px; bottom:10px; color:#6d627d; font-size:8px; font-weight:900; letter-spacing:.15em; }
+.scan-transfer { z-index:2; color:var(--ocr); font-size:25px; animation:transfer-arrow 7s ease-in-out infinite; }
+.scan-output strong { color:#5374bb; font-size:14px; font-weight:900; }.scan-output .editable-line { background:#a6b4cc; }
+.editable-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px; height:55px; margin:19px 0; }.editable-grid i { border:1px solid #86a1cf; background:#dce6f5; }
+.edit-cursor { display:block; width:2px; height:12px; background:#5e82d0; animation:cursor-blink 1s steps(2,end) infinite; }
+.scan-label { color:#c8b3ee; }
+
+/* Several sources converge and resolve into three useful outcomes. */
+.multi-visual { --scene-glow:#6d91ff27; min-height:335px; gap:9px; padding:24px; border:1px solid #42516b; border-radius:18px; background:#222a39; }
+.multi-inputs { position:relative; flex:none; width:120px; height:100px; }
+.mini-file { position:absolute; top:12px; display:grid; place-items:center; width:58px; height:75px; border:1px solid var(--tone); border-radius:7px; color:var(--tone); background:#20242c; box-shadow:0 14px 20px #0007; font-size:10px; font-weight:900; animation:files-converge 8s ease-in-out infinite; }
+.mini-file:nth-child(1){left:0;transform:rotate(-12deg)}.mini-file:nth-child(2){left:32px;top:1px;transform:rotate(4deg);animation-delay:.15s}.mini-file:nth-child(3){left:64px;transform:rotate(13deg);animation-delay:.3s}
+.multi-flow { color:#8cacff; font-size:23px; animation:transfer-arrow 8s ease-in-out infinite; }
+.multi-hub { position:relative; display:grid; place-items:center; flex:none; width:72px; height:72px; border:1px solid #7c98d6; border-radius:15px; color:#c5d5ff; background:#34466b; box-shadow:0 0 26px #7a9dff2c; font-size:8px; font-weight:900; letter-spacing:.06em; animation:hub-pulse 8s ease-in-out infinite; }.multi-hub i { position:absolute; inset:-6px; border:1px solid #7c98d666; border-radius:19px; }
+.multi-outputs { display:flex; flex-direction:column; gap:6px; flex:none; width:77px; }.multi-outputs span { padding:6px 4px; border:1px solid #7494cc; border-radius:5px; color:#bfd2f7; background:#2c3c5a; text-align:center; font-size:7px; font-weight:900; animation:output-resolve 8s ease-in-out infinite; }.multi-outputs span:nth-child(2){animation-delay:2.6s}.multi-outputs span:nth-child(3){animation-delay:5.2s}
+
+/* Compression is a single visible reduction, repeated gently. */
+.compress-visual { --scene-glow:#55d7aa22; background:#26303a; }
+.compress-disc { display:grid; place-items:center; width:116px; height:116px; border:1px solid #738195; border-radius:50%; color:#d2d9e4; font-size:28px; font-weight:800; box-shadow:0 0 25px #0003; }.compress-disc small { font-size:11px; margin-top:-35px; }
+.compress-before { animation:compress-before 8s ease-in-out infinite; }.compress-after { width:75px; height:75px; color:var(--image); border-color:var(--image); font-size:22px; animation:compress-after 8s ease-in-out infinite; }.compress-after small { margin-top:-20px; }
+.compress-arrow { margin:0 20px; color:var(--image); font-size:28px; animation:transfer-arrow 8s ease-in-out infinite; }
+
+@keyframes hero-front { 50%{transform:translate(12px,6px) rotate(1deg)} }
+@keyframes hero-back { 50%{transform:translate(78px,-43px) rotate(17deg)} }
+@keyframes hero-mid { 50%{transform:translate(-53px,7px) rotate(-12deg)} }
+@keyframes hero-state { 0%,2%{opacity:0;transform:translateY(4px)} 5%,20%{opacity:1;transform:translateY(0)} 24%,100%{opacity:0;transform:translateY(-4px)} }
+@keyframes orbit-nudge { 50%{transform:translate(7px,-9px) rotate(13deg)} }
+@keyframes pdf-page-one { 0%,20%,86%,100%{transform:translate(0,0) rotate(-5deg)} 44%,62%{transform:translate(-27px,-17px) rotate(-18deg)} }
+@keyframes pdf-page-two { 0%,20%,86%,100%{transform:translate(7px,1px) rotate(2deg)} 44%,62%{transform:translate(7px,-32px) rotate(1deg)} }
+@keyframes pdf-page-three { 0%,20%,86%,100%{transform:translate(14px,3px) rotate(8deg)} 44%,62%{transform:translate(39px,-12px) rotate(18deg)} }
+@keyframes transfer-pulse { 0%,32%,80%,100%{opacity:.35} 45%,68%{opacity:1} }
+@keyframes pdf-result { 0%,45%,100%{box-shadow:0 15px 35px #0006,0 0 24px #fb746d12;transform:scale(.96)} 68%,82%{box-shadow:0 15px 35px #0006,0 0 36px #fb746d57;transform:scale(1)} }
+@keyframes operation-highlight { 0%,8%,100%{opacity:.5} 12%,28%{opacity:1} 34%{opacity:.5} }
+@keyframes image-before { 0%,20%,100%{transform:rotate(-4deg) scale(1)} 55%,75%{transform:rotate(-3deg) scale(.94)} }
+@keyframes image-after { 0%,25%,100%{transform:rotate(4deg) translateY(12px) scale(.95)} 55%,77%{transform:rotate(1deg) translateY(4px) scale(1.04)} }
+@keyframes image-wipe { 0%,30%{clip-path:inset(0 100% 0 0)} 65%,82%{clip-path:inset(0 0 0 0)} 100%{clip-path:inset(0 100% 0 0)} }
+@keyframes transfer-arrow { 0%,20%,100%{opacity:.55;transform:translateX(-3px)} 42%,68%{opacity:1;transform:translateX(4px)} }
+@keyframes orbit-turn { 50%{rotate:12deg} }
+@keyframes node-glow { 0%,15%,100%{box-shadow:0 15px 25px #0006} 27%,40%{box-shadow:0 15px 25px #0006,0 0 22px currentColor} }
+@keyframes office-flow { 0%,100%{transform:translate(44px,45px);opacity:0} 8%{opacity:1} 25%{transform:translate(155px,147px)} 50%{transform:translate(260px,46px)} 75%{transform:translate(155px,147px)} 92%{transform:translate(260px,239px);opacity:1} }
+@keyframes convert-source { 0%,25%,100%{transform:rotate(-7deg) scale(1);opacity:1} 48%,65%{transform:translateX(10px) rotate(-3deg) scale(.94);opacity:.65} }
+@keyframes convert-destination { 0%,36%,100%{transform:rotate(6deg) scale(.92);opacity:.7} 55%,78%{transform:rotate(2deg) scale(1.07);opacity:1} }
+@keyframes convert-token { 0%,22%,100%{transform:translateX(0);opacity:0} 36%{opacity:1} 65%{transform:translateX(43px);opacity:1} 75%{opacity:0} }
+@keyframes scan-sweep { 0%,12%,100%{transform:translateY(0);opacity:0} 20%{opacity:1} 66%{transform:translateY(167px);opacity:1} 76%{opacity:0} }
+@keyframes detect-reveal { 0%,29%,100%{opacity:0;transform:scaleX(.94)} 39%,72%{opacity:1;transform:scaleX(1)} 84%{opacity:0} }
+@keyframes editable-arrive { 0%,36%,100%{opacity:.72;transform:rotate(5deg) translateY(4px)} 58%,83%{opacity:1;transform:rotate(2deg) translateY(0)} }
+@keyframes cursor-blink { 50%{opacity:0} }
+@keyframes files-converge { 0%,20%,100%{translate:0 0;opacity:1} 46%,62%{translate:28px 0;opacity:.55} 75%{translate:0 0;opacity:1} }
+@keyframes hub-pulse { 0%,30%,100%{box-shadow:0 0 17px #7a9dff19} 51%,68%{box-shadow:0 0 32px #7a9dff70} }
+@keyframes output-resolve { 0%,27%,100%{opacity:.45;transform:translateX(-5px)} 38%,70%{opacity:1;transform:translateX(0)} }
+@keyframes compress-before { 0%,22%,100%{transform:scale(1);opacity:1} 55%,78%{transform:scale(.77);opacity:.72} }
+@keyframes compress-after { 0%,27%,100%{transform:scale(.82);box-shadow:none} 55%,78%{transform:scale(1.12);box-shadow:0 0 26px #55d7aa4b} }
+
+@media (max-width:800px) {
+  .pdf-visual { min-height:300px; }.pdf-page-deck { top:19%; }.pdf-operations { bottom:18px; }
+  .image-photo { height:155px; }.image-transfer { font-size:8px; }.office-visual { min-height:310px; }
+  .scans-visual { min-height:300px; }.multi-visual { min-height:280px; }
+}
+@media (max-width:580px) {
+  .hero-visual .hero-next-step { display:none; }
+  .pdf-page-deck { left:13%; top:22%; scale:.77; transform-origin:top left; }.pdf-output { right:10%; top:31%; scale:.82; }
+  .pdf-operations { font-size:7px; }.image-visual { padding:11px; gap:4px; min-height:255px; }
+  .image-preview { padding:5px; }.image-photo { height:125px; }.image-caption { font-size:8px; }
+  .image-transfer span { display:none; }.image-transfer i { font-size:20px; }
+  .office-orbit { scale:.83; }.office-visual { min-height:260px; }
+  .scan-page,.scan-output { scale:.8; margin:-12px; }.scans-visual { gap:12px; min-height:260px; }.scan-label { bottom:10px; font-size:7px; }
+  .multi-visual { gap:4px; padding:12px; min-height:250px; }.multi-inputs { width:105px; scale:.85; transform-origin:left center; }.multi-hub { width:66px; height:66px; }.multi-outputs { width:70px; }.multi-flow { font-size:19px; }
+  .convert-file { scale:.8; }.convert-visual { gap:6px; }.convert-caption,.office-caption,.compress-caption { font-size:7px; bottom:10px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .motion-scene,.motion-scene *,.motion-scene::before { animation:none !important; }
+  .hero-file-states span:first-child { opacity:1; }
+  .detection-box { opacity:1; transform:none; }
+  .scan-beam,.office-route { display:none; }
+  .scan-output { opacity:1; transform:rotate(2deg); }
+  .multi-outputs span { opacity:1; transform:none; }
+}
