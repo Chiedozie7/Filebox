@@ -9,4 +9,4 @@ const result = await runTool("image-compress", [imageFile], {}, setProcessingSta
 if (result) await downloadResult(result);
 ```
 
-`runTool` chooses multipart local upload or browser-to-R2 upload from the configured mode. R2 browser access also requires bucket CORS permission for the frontend origin, PUT, GET, and the `Content-Type` header. The backend does not expose queue progress, so the UI shows “Queued or processing” while its processing request is pending.
+`runTool` chooses multipart local upload or browser-to-R2 upload from the configured mode. R2 browser access also requires bucket CORS permission for the frontend origin, PUT, GET, and the `Content-Type` header. The backend does not expose queue progress, so the UI shows upload and processing phases without percentages or queue positions.

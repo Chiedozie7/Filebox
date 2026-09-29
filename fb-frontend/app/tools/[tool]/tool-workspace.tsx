@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type KeyboardEvent } from "react";
 import {
   acceptForTool, availableFormats, downloadResult, idleState,
   normalizeError, runTool, tools, validateFiles, type OptionName,
@@ -8,6 +8,8 @@ import {
 } from "@/lib/filebox";
 
 const size = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+const resultSize = (bytes: number) => bytes < 1024 ? `${bytes} B` :
+  bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 const labels: Record<OptionName, string> = {
   width: "Width (pixels)", height: "Height (pixels)", format: "Output format",
   password: "PDF password", startPage: "First page", endPage: "Last page",
@@ -21,8 +23,15 @@ export default function ToolWorkspace({ tool }: { tool: ToolId }) {
   const [options, setOptions] = useState<Record<string, string>>({ lang: "eng" });
   const [state, setState] = useState<ProcessingState>(idleState);
   const [downloadError, setDownloadError] = useState<string>();
+  const [stillWorking, setStillWorking] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
-  const busy = state.status === "uploading" || state.status === "queued/processing";
+  const busy = ["preparing", "uploading", "processing", "finalizing"].includes(state.status);
+
+  useEffect(() => {
+    if (state.status !== "processing") return;
+    const timer = window.setTimeout(() => setStillWorking(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [state.status]);
 
   function addFiles(incoming: File[]) {
     if (!incoming.length || busy) return;
@@ -48,6 +57,12 @@ export default function ToolWorkspace({ tool }: { tool: ToolId }) {
   function onDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     addFiles(Array.from(event.dataTransfer.files));
+  }
+
+  function onPickerKeyDown(event: KeyboardEvent<HTMLLabelElement>) {
+    if (busy || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    inputRef.current?.click();
   }
 
   function remove(index: number) {
@@ -79,7 +94,10 @@ export default function ToolWorkspace({ tool }: { tool: ToolId }) {
     controllerRef.current = controller;
     try {
       await runTool(tool, files, options, next => {
-        if (controllerRef.current === controller) setState(next);
+        if (controllerRef.current === controller) {
+          setStillWorking(false);
+          setState(next);
+        }
       }, controller.signal);
     } finally {
       if (controllerRef.current === controller) controllerRef.current = null;
@@ -109,11 +127,13 @@ export default function ToolWorkspace({ tool }: { tool: ToolId }) {
     <form onSubmit={submit} className="tool-form">
       <section aria-labelledby="files-heading">
         <h2 id="files-heading">Files</h2>
-        <div className="drop-zone" onDragOver={event => event.preventDefault()} onDrop={onDrop}>
+        <label className="drop-zone" role="button" tabIndex={busy ? -1 : 0} aria-disabled={busy}
+          onKeyDown={onPickerKeyDown} onDragOver={event => event.preventDefault()} onDrop={onDrop}>
           <p>Drag and drop {config.multiple ? "files" : "a file"} here, or choose from your device.</p>
-          <input ref={inputRef} type="file" accept={acceptForTool(tool)} multiple={config.multiple}
+          <span className="choose-button">Choose {config.multiple ? "files" : "file"}</span>
+          <input ref={inputRef} className="visually-hidden" type="file" accept={acceptForTool(tool)} multiple={config.multiple}
             onChange={onPick} disabled={busy} aria-label="Choose files" />
-        </div>
+        </label>
         <p className="hint">Accepted: {config.acceptedExtensions.map(ext => `.${ext}`).join(", ")}.
           {` ${config.minFiles === config.limits.maxFiles ? config.minFiles : `${config.minFiles}–${config.limits.maxFiles}`} file(s), up to ${size(config.limits.maxTotalBytes)} total.`}
           {config.limits.maxPdfPages ? ` PDF OCR is limited to ${config.limits.maxPdfPages} pages.` : ""}
@@ -170,12 +190,26 @@ export default function ToolWorkspace({ tool }: { tool: ToolId }) {
       </div>
 
       <div aria-live="polite" className="status">
+        {state.status === "preparing" && <p>Preparing your files…</p>}
         {state.status === "uploading" && <p>Uploading files…</p>}
-        {state.status === "queued/processing" && <p>Queued or processing. Please keep this page open…</p>}
+        {state.status === "processing" && <p>Processing your files…</p>}
+        {state.status === "finalizing" && <p>Finalizing your result…</p>}
+        {stillWorking && state.status === "processing" && <p>Still working — larger files can take a little longer.</p>}
         {state.status === "error" && <p role="alert">{state.error.message}{state.error.detail ? ` ${state.error.detail}` : ""}</p>}
         {state.status === "success" && <div>
           <p>{state.result.message}</p>
-          <p>Ready: {state.result.filename}</p>
+          <p>{state.result.filename}</p>
+          {state.result.compression && <div className="compression-result">
+            <p>Original size: {resultSize(state.result.compression.originalBytes)}</p>
+            {state.result.compression.outputBytes !== undefined &&
+              <p>Output size: {resultSize(state.result.compression.outputBytes)}</p>}
+            {state.result.compression.retainedOriginal
+              ? <p>No size reduction. The original file was retained.</p>
+              : state.result.compression.savedPercent !== undefined
+                ? <p>Saved: {state.result.compression.savedPercent}%</p>
+                : state.result.compression.outputBytes !== undefined &&
+                  <p>No size reduction.</p>}
+          </div>}
           <button type="button" onClick={() => void download()}>Download {state.result.filename}</button>
         </div>}
         {downloadError && <p role="alert">{downloadError}</p>}

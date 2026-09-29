@@ -31,10 +31,15 @@ test("image compression accepts a dropped file, downloads PNG, and resets", asyn
   await page.route("**/files/compress", async route => {
     request = route.request();
     await gate.wait;
-    await route.fulfill({ json: { message: "Image compressed", compressed: "compressed-1.png" } });
+    await route.fulfill({ json: { message: "Image compressed", compressed: "compressed-1.png",
+      originalSize: 4, compressedSize: 2 } });
   });
   await mockDownload(page);
   await page.goto("/tools/image-compress");
+  await expect(page.locator(".drop-zone")).toHaveCSS("cursor", "pointer");
+  await expect(page.locator(".choose-button")).toHaveCSS("cursor", "pointer");
+  await page.locator(".drop-zone").focus();
+  await expect(page.locator(".drop-zone")).toBeFocused();
   await page.evaluate(() => {
     const transfer = new DataTransfer();
     transfer.items.add(new File([new Uint8Array([137, 80, 78, 71])], "dropped.png", { type: "image/png" }));
@@ -49,11 +54,14 @@ test("image compression accepts a dropped file, downloads PNG, and resets", asyn
   expect(request?.url()).toContain("/files/compress");
   expect(multipart(request!)).toContain('name="file"; filename="dropped.png"');
   gate.release();
-  await expect(page.getByText("Ready: compressed-1.png")).toBeVisible();
+  await expect(page.getByText("compressed-1.png", { exact: true })).toBeVisible();
+  await expect(page.getByText("Original size: 4 B")).toBeVisible();
+  await expect(page.getByText("Output size: 2 B")).toBeVisible();
+  await expect(page.getByText("Saved: 50%")).toBeVisible();
   await expectDownload(page, "compressed-1.png");
   await page.getByRole("button", { name: "Reset" }).click();
   await expect(page.locator(".selected-files li")).toHaveCount(0);
-  await expect(page.getByText("Ready: compressed-1.png")).toHaveCount(0);
+  await expect(page.getByText("compressed-1.png", { exact: true })).toHaveCount(0);
 });
 
 const simpleCases = [
@@ -71,7 +79,8 @@ for (const item of simpleCases) {
     await page.route(`**${item.endpoint}`, async route => {
       request = route.request();
       await gate.wait;
-      await route.fulfill({ json: { message: "Done", [item.output]: item.filename } });
+      await route.fulfill({ json: { message: "Done", [item.output]: item.filename,
+        ...(item.tool === "pdf-compress" ? { originalSize: 1000, compressedSize: 1000, retainedOriginal: true } : {}) } });
     });
     await mockDownload(page);
     await page.goto(`/tools/${item.tool}`);
@@ -97,7 +106,13 @@ for (const item of simpleCases) {
       expect(body).toMatch(/name="height"\r\n\r\n240/);
     }
     gate.release();
-    await expect(page.getByText(`Ready: ${item.filename}`)).toBeVisible();
+    await expect(page.getByText(item.filename, { exact: true })).toBeVisible();
+    if (item.tool === "pdf-compress") {
+      await expect(page.getByText("Original size: 1000 B")).toBeVisible();
+      await expect(page.getByText("Output size: 1000 B")).toBeVisible();
+      await expect(page.getByText("No size reduction. The original file was retained.")).toBeVisible();
+      await expect(page.getByText(/Saved: /)).toHaveCount(0);
+    }
     await expectDownload(page, item.filename);
     if (item.tool === "pdf-compress") {
       await page.getByRole("link", { name: "Merge to PDF" }).click();
@@ -117,6 +132,7 @@ test("PDF merge preserves the chosen order in multipart files", async ({ page })
   });
   await mockDownload(page);
   await page.goto("/tools/pdf-merge");
+  await expect(page.getByText(/Combine PDFs, Word documents, Excel files, and supported images/)).toBeVisible();
   await page.getByLabel("Choose files").setInputFiles([inputFile("pdf", "first.pdf"), inputFile("pdf", "second.pdf")]);
   await expect(page.locator(".selected-files li")).toHaveCount(2);
   await page.getByRole("button", { name: "Move second.pdf up" }).click();
@@ -127,7 +143,7 @@ test("PDF merge preserves the chosen order in multipart files", async ({ page })
   const body = multipart(request!);
   expect(body.indexOf('filename="second.pdf"')).toBeLessThan(body.indexOf('filename="first.pdf"'));
   gate.release();
-  await expect(page.getByText("Ready: merged-6.pdf")).toBeVisible();
+  await expect(page.getByText("merged-6.pdf", { exact: true })).toBeVisible();
   await expectDownload(page, "merged-6.pdf");
 });
 
@@ -152,7 +168,7 @@ test("batch conversion sends the shared target format and downloads ZIP", async 
   expect(body).toContain('name="files"; filename="operations-report.docx"');
   expect(body).toMatch(/name="format"\r\n\r\nxlsx/);
   gate.release();
-  await expect(page.getByText("Ready: batch-7.zip")).toBeVisible();
+  await expect(page.getByText("batch-7.zip", { exact: true })).toBeVisible();
   await expectDownload(page, "batch-7.zip");
 });
 
@@ -173,7 +189,7 @@ test("PDF unlock submits password and downloads an unlocked PDF", async ({ page 
   await expect.poll(() => request).toBeDefined();
   expect(multipart(request!)).toMatch(/name="password"\r\n\r\ncorrect-password/);
   gate.release();
-  await expect(page.getByText("Ready: unlocked-8.pdf")).toBeVisible();
+  await expect(page.getByText("unlocked-8.pdf", { exact: true })).toBeVisible();
   await expectDownload(page, "unlocked-8.pdf");
 });
 
@@ -196,7 +212,7 @@ test("local OCR accepts a language and uses attachment filename", async ({ page 
   await expect.poll(() => request).toBeDefined();
   expect(multipart(request!)).toMatch(/name="lang"\r\n\r\nfra/);
   gate.release();
-  await expect(page.getByText("Ready: ocr-9.docx")).toBeVisible();
+  await expect(page.getByText("ocr-9.docx", { exact: true })).toBeVisible();
   await expectDownload(page, "ocr-9.docx");
 });
 
@@ -216,9 +232,9 @@ test("shows processing after the multipart upload reaches the server", async ({ 
     await page.goto("/tools/pdf-compress");
     await page.getByLabel("Choose files").setInputFiles(inputFile("pdf"));
     await page.getByRole("button", { name: "Process files" }).click();
-    await expect(page.getByText(/Queued or processing/)).toBeVisible();
+    await expect(page.getByText(/Processing your files/)).toBeVisible();
     gate.release();
-    await expect(page.getByText("Ready: server-processed.pdf")).toBeVisible();
+    await expect(page.getByText("server-processed.pdf", { exact: true })).toBeVisible();
   } finally {
     gate.release();
     await new Promise<void>(resolve => server.close(() => resolve()));
@@ -254,9 +270,9 @@ test("network failure offers retry, then reset clears success", async ({ page })
   await page.getByRole("button", { name: "Process files" }).click();
   await expect(page.locator(".status [role=alert]")).toContainText("Could not connect");
   await page.getByRole("button", { name: "Retry" }).click();
-  await expect(page.getByText("Ready: retry.png")).toBeVisible();
+  await expect(page.getByText("retry.png", { exact: true })).toBeVisible();
   expect(attempts).toBe(2);
   await page.getByRole("button", { name: "Reset" }).click();
   await expect(page.locator(".selected-files li")).toHaveCount(0);
-  await expect(page.getByText("Ready: retry.png")).toHaveCount(0);
+  await expect(page.getByText("retry.png", { exact: true })).toHaveCount(0);
 });

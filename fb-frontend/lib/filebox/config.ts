@@ -81,7 +81,7 @@ export const tools: Record<ToolId, ToolConfig> = {
   "image-convert": { ...single("Convert image", "Save an image in another format.", "Image", "/files/convert", imageExt, image, "converted", ["image-compress", "image-resize"], ["format"]), targetFormat: { required: true, field: "format", choices: imageFormats } },
   "pdf-compress": single("Compress PDF", "Reduce a PDF's file size.", "PDF", "/files/pdf/compress", ["pdf"], pdf, "compressed", ["pdf-split", "pdf-merge"]),
   "pdf-split": single("Split PDF", "Extract a page range into a new PDF.", "PDF", "/files/pdf/split", ["pdf"], pdf, "split", ["pdf-merge"], ["startPage", "endPage"]),
-  "pdf-merge": { ...single("Merge to PDF", "Combine files in their selected order.", "PDF", "/files/pdf/merge", ["pdf", "docx", "xlsx", ...imageExt], pdf, "merged", ["pdf-split", "zip"]), field: "files", multiple: true, minFiles: 2, limits: multi("merge") },
+  "pdf-merge": { ...single("Merge to PDF", "Combine PDFs, Word documents, Excel files, and supported images into one PDF in the selected order. You can also merge multiple PDFs.", "PDF", "/files/pdf/merge", ["pdf", "docx", "xlsx", ...imageExt], pdf, "merged", ["pdf-split", "zip"]), field: "files", multiple: true, minFiles: 2, limits: multi("merge") },
   "pdf-unlock": single("Unlock PDF", "Remove a PDF password when you know it.", "PDF", "/files/pdf/unlock", ["pdf"], pdf, "unlocked", ["pdf-compress"], ["password"]),
   "pdf-to-word": single("PDF to Word", "Convert PDF to DOCX.", "Convert", "/files/pdf/to-word", ["pdf"], pdf, "converted", ["word-to-pdf", "pdf-to-excel"]),
   "word-to-pdf": single("Word to PDF", "Convert DOCX to PDF.", "Convert", "/files/word/to-pdf", ["docx"], office, "converted", ["pdf-to-word", "word-to-excel"]),

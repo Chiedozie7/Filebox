@@ -10,12 +10,15 @@ export interface ToolResult {
   output?: ObjectReference;
   downloadUrl?: string;
   metadata?: ProcessResponse;
+  compression?: { originalBytes: number; outputBytes?: number; savedPercent?: number; retainedOriginal: boolean };
 }
 
 export type ProcessingState =
   | { status: "idle" }
+  | { status: "preparing" }
   | { status: "uploading" }
-  | { status: "queued/processing" }
+  | { status: "processing" }
+  | { status: "finalizing" }
   | { status: "success"; result: ToolResult }
   | { status: "error"; error: FileBoxError };
 
@@ -67,7 +70,10 @@ export function validateOptions(tool: ToolId, files: readonly File[], options: R
 const isBinaryResponse = (response: ProcessResponse | BinaryResponse): response is BinaryResponse =>
   "blob" in response && response.blob instanceof Blob && typeof response.filename === "string";
 
-function toResult(tool: ToolId, response: ProcessResponse | BinaryResponse): ToolResult {
+const byteCount = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+
+function toResult(tool: ToolId, response: ProcessResponse | BinaryResponse, files: readonly File[]): ToolResult {
   if (isBinaryResponse(response)) {
     return { filename: response.filename, blob: response.blob, message: "OCR conversion completed." };
   }
@@ -76,8 +82,18 @@ function toResult(tool: ToolId, response: ProcessResponse | BinaryResponse): Too
   if (typeof filename !== "string" || !filename) {
     throw new FileBoxError(500, "Processing finished, but no download was returned.");
   }
+  const compression = config.outputField === "compressed" ? (() => {
+    const originalBytes = byteCount(response.originalSize) ?? byteCount(response.originalBytes) ?? files[0].size;
+    const outputBytes = byteCount(response.compressedSize) ?? byteCount(response.outputSize) ??
+      byteCount(response.outputBytes) ?? byteCount(response.output?.size);
+    const retainedOriginal = response.retainedOriginal === true || response.keptOriginal === true ||
+      response.usedOriginal === true || /(?:original.*(?:retained|kept)|(?:retained|kept).*original)/i.test(response.message ?? "");
+    const savedPercent = outputBytes !== undefined && originalBytes > 0 && outputBytes < originalBytes && !retainedOriginal
+      ? Math.round((1 - outputBytes / originalBytes) * 1000) / 10 : undefined;
+    return { originalBytes, outputBytes, savedPercent, retainedOriginal };
+  })() : undefined;
   return { filename, message: response.message ?? "Processing completed.",
-    output: response.output, downloadUrl: response.downloadUrl, metadata: response };
+    output: response.output, downloadUrl: response.downloadUrl, metadata: response, compression };
 }
 
 export async function runTool(
@@ -88,12 +104,14 @@ export async function runTool(
     validateFiles(tool, files);
     const fields = validateOptions(tool, files, options);
     const mode = getStorageMode();
+    onStateChange({ status: "preparing" });
     onStateChange({ status: "uploading" });
-    const uploaded = () => onStateChange({ status: "queued/processing" });
+    const uploaded = () => onStateChange({ status: "processing" });
     const response = mode === "r2"
       ? await processR2Files(tool, files, fields, signal, uploaded)
       : await processLocalFiles(tool, files, fields, signal, uploaded);
-    const result = toResult(tool, response);
+    onStateChange({ status: "finalizing" });
+    const result = toResult(tool, response, files);
     onStateChange({ status: "success", result });
     return result;
   } catch (error) {

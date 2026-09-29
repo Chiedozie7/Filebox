@@ -52,7 +52,7 @@ test("R2 merge uploads in order, sends signed references, and downloads named ou
   await page.getByRole("button", { name: "Process files" }).click();
   await expect(page.getByText(/Uploading files/)).toBeVisible();
   releaseUpload();
-  await expect(page.getByText(/Queued or processing/)).toBeVisible();
+  await expect(page.getByText(/Processing your files/)).toBeVisible();
   expect(issued.map(item => item.name)).toEqual(["second.pdf", "first.pdf"]);
   expect(puts).toHaveLength(2);
   expect(puts.map(request => request.headers()["content-type"])).toEqual([
@@ -63,7 +63,7 @@ test("R2 merge uploads in order, sends signed references, and downloads named ou
     files: [{ token: "signed-input-1", name: "second.pdf" }, { token: "signed-input-2", name: "first.pdf" }],
   });
   releaseProcess();
-  await expect(page.getByText("Ready: merged-r2.pdf")).toBeVisible();
+  await expect(page.getByText("merged-r2.pdf", { exact: true })).toBeVisible();
   const downloaded = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download merged-r2.pdf" }).click();
   expect((await downloaded).suggestedFilename()).toBe("merged-r2.pdf");
