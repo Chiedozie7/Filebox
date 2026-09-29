@@ -80,7 +80,7 @@ export function FileVisual({ kind }: { kind: "hero" | "compress" | "convert" | "
       <div className="doc-line wide"/><div className="doc-line"/><div className="doc-line medium"/>
       <div className="doc-chart"><i/><i/><i/><i/></div><div className="doc-line medium"/><div className="doc-line short"/>
       <div className="hero-file-states"><span>PDF</span><span>DOC</span><span>XLS</span><span>IMG</span></div></div>
-    <span className="hero-orbit hero-orbit-one">✦</span><span className="hero-orbit hero-orbit-two">↗</span>
+    <span className="hero-orbit hero-orbit-two">↗</span>
     <span className="hero-next-step">FILE → NEXT STEP</span>
   </div>;
 }

@@ -25,7 +25,7 @@ export default function Home() {
     <section className="section feature-section pdf-showcase" id="pdf-tools"><div className="container">
       <SectionHeading eyebrow="01 / PDF" title="A better way through PDF." description="The everyday PDF jobs, all in one place: compress, rearrange, combine, unlock, and convert."
         href="/pdf" linkText="Explore PDF tools" />
-      <div className="pdf-layout"><div className="pdf-feature-visual"><FileVisual kind="pdf"/><div className="feature-visual-label">FROM PDF / TO POSSIBILITY</div></div>
+      <div className="pdf-layout"><div className="pdf-feature-visual"><FileVisual kind="pdf"/><div className="feature-visual-label">DO MORE WITH EVERY PDF</div></div>
         <div className="pdf-actions"><div className="pdf-primary"><ActionCard id="pdf-compress" prominent/><ActionCard id="pdf-merge" prominent
           note="Combine PDFs, DOCX, XLSX, and supported images into one PDF."/></div>
           <div className="action-list"><ActionCard id="pdf-split"/><ActionCard id="pdf-unlock"/><ActionCard id="pdf-to-word"/>

@@ -109,7 +109,7 @@ a { color:inherit; text-decoration:none; }
 .carousel-top>div { display:flex; gap:7px; }
 .carousel-top button { width:40px; height:40px; border:1px solid var(--line); border-radius:8px; background:#222630; color:#fff; font-size:18px; }
 .carousel-top button:hover { border-color:var(--blue); color:var(--blue); }
-.workflow-track { display:flex; gap:18px; overflow-x:auto; padding:5px 15% 20px 0; scrollbar-width:none; scroll-snap-type:x mandatory; }
+.workflow-track { position:relative; display:flex; gap:18px; overflow-x:auto; padding:5px max(16%, calc(50% - 370px)) 20px; scrollbar-width:none; scroll-snap-type:x mandatory; }
 .workflow-track::-webkit-scrollbar { display:none; }
 .workflow-slide { flex:0 0 min(68%,740px); display:grid; grid-template-columns:1fr 1fr; min-height:300px; overflow:hidden; scroll-snap-align:center; border:1px solid #3b414d; border-radius:18px; background:#20242d; opacity:.65; transform:scale(.975); transition:opacity .35s,transform .35s,border-color .35s; }
 .workflow-slide.is-active { opacity:1; transform:scale(1); border-color:#64728c; }
@@ -120,7 +120,7 @@ a { color:inherit; text-decoration:none; }
 .workflow-slide .text-link { align-self:start; margin-top:25px; }
 .pdf-layout { display:grid; grid-template-columns:.83fr 1.17fr; gap:21px; }
 .pdf-feature-visual { position:relative; min-height:450px; overflow:hidden; border:1px solid #40434e; border-radius:19px; background:#27262c; }
-.feature-visual-label { position:absolute; bottom:22px; left:25px; font-size:10px; color:#c5a29f; font-weight:800; letter-spacing:.18em; }
+.feature-visual-label { position:absolute; top:22px; left:25px; z-index:2; font-size:10px; color:#e5bfbb; font-weight:800; letter-spacing:.18em; }
 .pdf-actions { display:flex; flex-direction:column; gap:12px; }
 .pdf-primary { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .action-list { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
@@ -190,7 +190,9 @@ a { color:inherit; text-decoration:none; }
 }
 @media (max-width:800px) {
   .hero { padding-top:26px; padding-bottom:35px; }
-  .hero>.hero-visual { top:8px; width:38%; height:330px; }
+  .hero::before { content:""; position:absolute; z-index:1; inset:0; pointer-events:none; background:linear-gradient(90deg,#111318ed 0%,#111318d9 42%,#11131891 78%,#11131870 100%),linear-gradient(180deg,transparent 20%,#111318b5 100%); }
+  .hero>.hero-visual { top:-14px; right:-8px; width:42%; height:330px; opacity:.23; filter:blur(.5px) saturate(.8); pointer-events:none; }
+  .workflow-track { padding-inline:max(11%, calc(50% - 370px)); }
   .hero + .section { padding-top:50px; }
   .showcase-split,.office-split { gap:24px; }
   .office-visual { order:initial; }
@@ -199,7 +201,9 @@ a { color:inherit; text-decoration:none; }
 }
 @media (max-width:580px) {
   .hero { padding-top:24px; padding-bottom:28px; }
-  .hero>.hero-visual { width:58%; height:300px; opacity:.12; }
+  .hero::before { background:linear-gradient(90deg,#111318f2 0%,#111318e3 54%,#111318af 100%),linear-gradient(180deg,transparent 10%,#111318d1 100%); }
+  .hero>.hero-visual { top:-22px; right:-4px; width:58%; height:300px; opacity:.15; }
+  .workflow-track { padding-inline:5%; }
   .hero + .section { padding-top:42px; }
   .showcase-split,.office-split { gap:17px; }
   .pdf-actions,.pdf-primary,.action-list { gap:9px; }
@@ -216,4 +220,5 @@ a { color:inherit; text-decoration:none; }
   .ocr-details h3 { font-size:25px; }
   .ocr-details .feature-points { margin-top:18px; }
 }
+@media (min-width:581px) and (max-width:800px) { .workflow-track { padding-inline:7%; } }
 @media (prefers-reduced-motion:reduce) { html{scroll-behavior:auto} *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important} }
