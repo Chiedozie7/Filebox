@@ -24,3 +24,30 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.workspace { width: min(100% - 2rem, 64rem); margin: 0 auto; padding: 2rem 0 4rem; }
+.workspace > header, .workspace > section, .workspace > aside, .tool-form > section { margin-bottom: 2rem; }
+.workspace h1 { font-size: 2rem; font-weight: 700; }
+.workspace h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: .75rem; }
+.workspace p { margin: .5rem 0; }
+.workspace a { text-decoration: underline; }
+.tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .75rem; list-style: none; padding: 0; }
+.tool-link { display: flex; flex-direction: column; gap: .25rem; border: 1px solid currentColor; padding: 1rem; height: 100%; }
+.related-tools { display: flex; flex-wrap: wrap; gap: .5rem 1rem; padding-left: 1.25rem; }
+.drop-zone { border: 1px dashed currentColor; padding: 1.25rem; }
+.drop-zone input { display: block; margin-top: .75rem; max-width: 100%; }
+.hint { font-size: .875rem; opacity: .8; }
+.selected-files { padding-left: 1.5rem; }
+.selected-files li { display: flex; justify-content: space-between; align-items: center; gap: .75rem; border-bottom: 1px solid #888; padding: .5rem 0; overflow-wrap: anywhere; }
+.file-actions, .form-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: .75rem; }
+.option-grid label { display: flex; flex-direction: column; gap: .25rem; }
+.option-grid input, .option-grid select { color: inherit; background: var(--background); border: 1px solid #888; padding: .5rem; }
+.workspace button { border: 1px solid currentColor; padding: .4rem .75rem; cursor: pointer; }
+.workspace button:disabled { opacity: .5; cursor: default; }
+.status { margin-top: 1rem; min-height: 2rem; }
+
+@media (max-width: 36rem) {
+  .workspace { width: min(100% - 1.25rem, 64rem); padding-top: 1rem; }
+  .selected-files li { align-items: flex-start; flex-direction: column; }
+}

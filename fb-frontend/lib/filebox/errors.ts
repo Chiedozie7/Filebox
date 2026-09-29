@@ -1,7 +1,8 @@
-export type FrontendErrorCode = 400 | 413 | 429 | 503 | 500 | "network" | "config";
+export type FrontendErrorCode = 400 | 401 | 413 | 429 | 503 | 500 | "network" | "config";
 
 const messages: Record<Exclude<FrontendErrorCode, "network" | "config">, string> = {
   400: "Check the selected file and try again.",
+  401: "The PDF password is incorrect. Try again.",
   413: "This file is too large. Choose a smaller file.",
   429: "Too many requests. Please wait a moment and try again.",
   503: "Processing is temporarily unavailable. Please try again later.",

@@ -1,28 +1,35 @@
-import { api, type CompressionResponse, type ObjectReference } from "./api";
+import { api, type BinaryResponse, type ObjectReference, type ProcessResponse } from "./api";
 import { tools, type ToolConfig, type ToolId } from "./config";
 import { errorFromResponse, FileBoxError, normalizeError } from "./errors";
 
 const mimeByExtension: Record<string, string> = {
   jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
   webp: "image/webp", avif: "image/avif", tiff: "image/tiff",
-  pdf: "application/pdf",
+  pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 };
 
-export function validateFiles(tool: ToolId, files: readonly File[]): void {
+export const fileExtension = (file: File) => file.name.split(".").pop()?.toLowerCase() ?? "";
+export const acceptForTool = (tool: ToolId) => tools[tool].acceptedExtensions.map(ext => `.${ext}`).join(",");
+
+export function validateFiles(tool: ToolId, files: readonly File[], requireMinimum = true): void {
   const config: ToolConfig = tools[tool];
-  if (files.length < 1 || files.length > config.limits.maxFiles) {
-    throw new FileBoxError(400, `Select ${config.limits.maxFiles === 1 ? "one file" : `up to ${config.limits.maxFiles} files`}.`);
+  if ((requireMinimum && files.length < config.minFiles) || files.length > config.limits.maxFiles) {
+    throw new FileBoxError(400, config.minFiles === config.limits.maxFiles
+      ? `Select ${config.minFiles} file${config.minFiles === 1 ? "" : "s"}.`
+      : `Select ${config.minFiles} to ${config.limits.maxFiles} files.`);
   }
   let total = 0;
   for (const file of files) {
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const ext = fileExtension(file);
     if (!config.acceptedExtensions.includes(ext) ||
       (file.type && file.type !== "application/octet-stream" &&
-        !config.acceptedMimeTypes.includes(file.type))) {
+        file.type !== mimeByExtension[ext] && !(ext === "avif" && file.type === "image/heif"))) {
       throw new FileBoxError(400, "This file type is not supported.");
     }
     if (file.size === 0) throw new FileBoxError(400, "Choose a file that is not empty.");
-    if (file.size > config.limits.maxBytesPerFile) {
+    if (file.size > (config.limits.bytesByExtension?.[ext] ?? config.limits.maxBytesPerFile)) {
       throw new FileBoxError(413, "This file is too large. Choose a smaller file.");
     }
     total += file.size;
@@ -44,12 +51,13 @@ export function localFormData(tool: ToolId, files: readonly File[], fields: Reco
 export async function processLocalFiles(
   tool: ToolId, files: readonly File[], fields: Record<string, string> = {}, signal?: AbortSignal,
   onUploadComplete?: () => void,
-): Promise<CompressionResponse> {
-  return api.processLocal(tools[tool].endpoint, localFormData(tool, files, fields), signal, onUploadComplete);
+): Promise<ProcessResponse | BinaryResponse> {
+  return api.processLocal(tools[tool].endpoint, localFormData(tool, files, fields), signal,
+    onUploadComplete, tools[tool].localBinary);
 }
 
 export async function uploadToR2(file: File, signal?: AbortSignal): Promise<ObjectReference> {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const ext = fileExtension(file);
   const type = mimeByExtension[ext];
   if (!type) throw new FileBoxError(400, "This file type is not supported.");
   const signed = await api.uploadUrl({ name: file.name, size: file.size, type }, signal);
@@ -69,12 +77,13 @@ export async function uploadToR2(file: File, signal?: AbortSignal): Promise<Obje
 }
 
 export async function processR2Files(
-  tool: ToolId, files: readonly File[], signal?: AbortSignal,
+  tool: ToolId, files: readonly File[], fields: Record<string, string> = {}, signal?: AbortSignal,
   onUploadComplete?: () => void,
-): Promise<CompressionResponse> {
+): Promise<ProcessResponse> {
   validateFiles(tool, files);
-  // Compression tools currently accept one signed input reference.
-  const object = await uploadToR2(files[0], signal);
+  const objects: ObjectReference[] = [];
+  for (const file of files) objects.push(await uploadToR2(file, signal));
   onUploadComplete?.();
-  return api.processR2(tools[tool].endpoint, object, signal);
+  const config = tools[tool];
+  return api.processR2(config.endpoint, config.field, objects, fields, signal);
 }

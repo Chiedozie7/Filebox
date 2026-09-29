@@ -16,14 +16,27 @@ export interface UploadUrlResponse {
   object: ObjectReference;
 }
 
-export interface CompressionResponse {
-  message: string;
-  original: string;
-  compressed: string;
+export interface ProcessResponse {
+  message?: string;
+  original?: string;
+  compressed?: string;
+  resized?: string;
+  converted?: string;
+  unlocked?: string;
+  merged?: string;
+  split?: string;
+  zip?: string;
   output?: ObjectReference;
   downloadUrl?: string;
   [metadata: string]: unknown;
 }
+
+export interface BinaryResponse {
+  blob: Blob;
+  filename: string;
+}
+
+export type CompressionResponse = ProcessResponse;
 
 export interface DownloadUrlResponse {
   url: string;
@@ -63,12 +76,13 @@ export const api = {
     }),
   processLocal: (
     endpoint: string, body: FormData, signal?: AbortSignal,
-    onUploadComplete?: () => void,
-  ) => new Promise<CompressionResponse>((resolve, reject) => {
+    onUploadComplete?: () => void, binary = false,
+  ) => new Promise<ProcessResponse | BinaryResponse>((resolve, reject) => {
     let xhr: XMLHttpRequest;
     try {
       xhr = new XMLHttpRequest();
       xhr.open("POST", apiUrl(endpoint));
+      if (binary) xhr.responseType = "blob";
     } catch (error) {
       reject(normalizeError(error));
       return;
@@ -78,11 +92,22 @@ export const api = {
     xhr.onabort = () => reject(normalizeError(null));
     xhr.onload = async () => {
       if (xhr.status < 200 || xhr.status >= 300) {
-        reject(await errorFromResponse(new Response(xhr.responseText, { status: xhr.status })));
+        const body = binary ? await (xhr.response as Blob).text() : xhr.responseText;
+        reject(await errorFromResponse(new Response(body, { status: xhr.status })));
+        return;
+      }
+      if (binary) {
+        const disposition = xhr.getResponseHeader("Content-Disposition") ?? "";
+        const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+        const plain = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+        let filename = "converted.docx";
+        try { filename = encoded ? decodeURIComponent(encoded) : plain ?? filename; }
+        catch { /* Keep the fallback name. */ }
+        resolve({ blob: xhr.response as Blob, filename });
         return;
       }
       try {
-        resolve(JSON.parse(xhr.responseText) as CompressionResponse);
+        resolve(JSON.parse(xhr.responseText) as ProcessResponse);
       } catch {
         reject(new FileBoxError(500, "The server returned an invalid response."));
       }
@@ -91,10 +116,11 @@ export const api = {
     if (signal?.aborted) reject(normalizeError(null));
     else xhr.send(body);
   }),
-  processR2: (endpoint: string, object: ObjectReference, signal?: AbortSignal) =>
-    request<CompressionResponse>(endpoint, {
+  processR2: (endpoint: string, field: "file" | "files", objects: readonly ObjectReference[],
+    fields: Record<string, string> = {}, signal?: AbortSignal) =>
+    request<ProcessResponse>(endpoint, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ file: object }), signal,
+      body: JSON.stringify({ ...fields, [field]: field === "files" ? objects : objects[0] }), signal,
     }),
   localDownloadUrl: (filename: string) =>
     apiUrl(`/files/download/${encodeURIComponent(filename)}`),

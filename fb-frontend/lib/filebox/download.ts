@@ -1,5 +1,6 @@
-import { api, type CompressionResponse } from "./api";
+import { api } from "./api";
 import { errorFromResponse, normalizeError } from "./errors";
+import type { ToolResult } from "./processing";
 
 export async function downloadBlob(url: string, filename: string, signal?: AbortSignal): Promise<void> {
   let response: Response;
@@ -24,10 +25,24 @@ export async function downloadBlob(url: string, filename: string, signal?: Abort
   }
 }
 
-export async function downloadResult(result: CompressionResponse, signal?: AbortSignal): Promise<void> {
+export async function downloadResult(result: ToolResult, signal?: AbortSignal): Promise<void> {
+  if (result.blob) {
+    const objectUrl = URL.createObjectURL(result.blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = result.filename;
+    document.body.append(anchor);
+    try { anchor.click(); }
+    finally { anchor.remove(); setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000); }
+    return;
+  }
   if (result.output) {
     const url = result.downloadUrl ?? (await api.downloadUrl(result.output, signal)).url;
-    return downloadBlob(url, result.output.name, signal);
+    try { return await downloadBlob(url, result.filename, signal); }
+    catch {
+      const refreshed = await api.downloadUrl(result.output, signal);
+      return downloadBlob(refreshed.url, result.filename, signal);
+    }
   }
-  return downloadBlob(api.localDownloadUrl(result.compressed), result.compressed, signal);
+  return downloadBlob(api.localDownloadUrl(result.filename), result.filename, signal);
 }

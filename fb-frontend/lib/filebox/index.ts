@@ -1,10 +1,10 @@
 export { api } from "./api";
-export type { CompressionResponse, DownloadUrlResponse, ObjectReference, UploadUrlResponse } from "./api";
-export { tools, getStorageMode } from "./config";
-export type { StorageMode, ToolConfig, ToolId } from "./config";
+export type { BinaryResponse, CompressionResponse, DownloadUrlResponse, ObjectReference, ProcessResponse, UploadUrlResponse } from "./api";
+export { tools, toolIds, getStorageMode } from "./config";
+export type { StorageMode, ToolConfig, ToolId, OptionName } from "./config";
 export { downloadBlob, downloadResult } from "./download";
 export { FileBoxError, normalizeError } from "./errors";
 export type { FrontendErrorCode } from "./errors";
-export { idleState, runCompression } from "./processing";
-export type { ProcessingState } from "./processing";
-export { localFormData, processLocalFiles, processR2Files, uploadToR2, validateFiles } from "./upload";
+export { availableFormats, idleState, runCompression, runTool, validateOptions } from "./processing";
+export type { ProcessingState, ToolResult } from "./processing";
+export { acceptForTool, localFormData, processLocalFiles, processR2Files, uploadToR2, validateFiles } from "./upload";
