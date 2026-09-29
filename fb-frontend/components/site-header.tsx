@@ -49,7 +49,8 @@ export function SiteHeader() {
       </Link>
       <nav className="desktop-nav" aria-label="Main navigation">
         <button type="button" className={megaOpen ? "nav-active" : ""} aria-expanded={megaOpen} aria-controls="tools-mega-menu"
-          onClick={() => setMegaOpen(value => !value)}>Tools <span aria-hidden="true">⌄</span></button>
+          onClick={() => setMegaOpen(value => !value)}>Tools <svg className="nav-chevron" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m3.5 6 4.5 4.5L12.5 6" /></svg></button>
         <Link href="/#features" onClick={() => setMegaOpen(false)}>Features</Link>
         <Link href="/#about" onClick={() => setMegaOpen(false)}>About</Link>
       </nav>

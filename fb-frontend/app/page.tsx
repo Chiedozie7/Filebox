@@ -15,22 +15,12 @@ export default function Home() {
         <div className="quick-tools"><span>Popular</span>{quickTools.map(id => <Link key={id} href={toolPath(id)}>{tools[id].label} <span aria-hidden="true">↗</span></Link>)}</div>
       </div>
       <FileVisual kind="hero" />
-      <div className="hero-bottom"><span>FILE WORK, WITHOUT THE FRICTION</span><span>Explore ↓</span></div>
     </section>
 
-    <section className="section container">
+    <section className="section container" id="features">
       <SectionHeading eyebrow="Start with a task" title="Four ways forward." description="Choose what you want to accomplish. We’ll point you to the right tool." />
       <WorkflowCarousel />
     </section>
-
-    <section className="capability-strip" id="features"><div className="container"><div className="capability-strip-intro">
-      <span className="eyebrow">Built for real file work</span><h2>More than a single conversion.</h2></div>
-      <div className="capability-strip-list"><div><strong>Batch processing</strong><p>Apply one output format across several files.</p></div>
-        <div><strong>OCR + tables</strong><p>Read scanned text and detect ruled tables.</p></div>
-        <div><strong>Editable output</strong><p>Reconstruct content into working documents.</p></div>
-        <div><strong>Temporary files</strong><p>Processing files are cleaned up automatically.</p></div>
-        <div><strong>Fast discovery</strong><p>Search by tool name or the task in mind.</p></div></div>
-    </div></section>
 
     <section className="section feature-section pdf-showcase" id="pdf-tools"><div className="container">
       <SectionHeading eyebrow="01 / PDF" title="A better way through PDF." description="The everyday PDF jobs, all in one place: compress, rearrange, combine, unlock, and convert."
@@ -59,19 +49,20 @@ export default function Home() {
       </div></div>
     </div></section>
 
-    <section className="section container ocr-showcase"><div className="showcase-split">
-      <div><SectionHeading eyebrow="04 / OCR" title="Give scanned pages new life." description="Extract text from images and multi-page scanned PDFs into an editable Word document. Ruled tables can be detected too."
+    <section className="section container ocr-showcase">
+      <SectionHeading eyebrow="04 / OCR" title="Give scanned pages new life." description="Extract text from images and multi-page scanned PDFs into an editable Word document. Ruled tables can be detected too."
         href={toolPath("ocr-to-word")} linkText="Turn a scan into editable Word" />
-        <div className="feature-points"><span>Text extraction</span><span>Editable DOCX output</span><span>Ruled-table detection</span></div></div>
-      <FileVisual kind="scans" />
-    </div></section>
-
-    <section className="section feature-section multi-showcase"><div className="container showcase-split">
-      <FileVisual kind="multi" />
-      <div><SectionHeading eyebrow="05 / Multiple files" title="Handle the whole stack." description="Convert files in a batch, combine mixed inputs into one PDF, or package them as a ZIP."
-        href="/workflows/multi-file" linkText="Work with multiple files" />
-        <div className="mini-actions"><ActionCard id="batch-convert"/><ActionCard id="pdf-merge"/><ActionCard id="zip"/></div>
+      <div className="showcase-split"><FileVisual kind="scans" />
+        <div className="ocr-details"><h3>From scan to editable.</h3><p>Turn text in a scanned page into a document you can work with.</p>
+          <div className="feature-points"><span>Text extraction</span><span>Editable DOCX output</span><span>Ruled-table detection</span></div></div>
       </div>
+    </section>
+
+    <section className="section feature-section multi-showcase"><div className="container">
+      <SectionHeading eyebrow="05 / Multiple files" title="Handle the whole stack." description="Convert files in a batch, combine mixed inputs into one PDF, or package them as a ZIP."
+        href="/workflows/multi-file" linkText="Work with multiple files" />
+      <div className="showcase-split"><FileVisual kind="multi" />
+        <div className="mini-actions"><ActionCard id="batch-convert"/><ActionCard id="pdf-merge"/><ActionCard id="zip"/></div></div>
     </div></section>
 
     <section className="section container privacy-section" id="about"><div>
