@@ -4,6 +4,7 @@ const path = require("path");
 const fileRepository = require("../repositories/fileRepository");
 const r2Service = require("./r2Service");
 const appLogger = require("./logger");
+const { uploadDir, isEphemeral } = require("../config/uploadDir");
 
 const DEFAULT_TTL_MS = 30 * 60 * 1000;
 const PERMANENT_LOOKUP_TIMEOUT_MS = 5000;
@@ -14,10 +15,11 @@ const configuredTtlMs = Number.isFinite(configuredMinutes) && configuredMinutes 
     : DEFAULT_TTL_MS;
 
 const createCleanupService = ({
-    uploadsDir = path.resolve(__dirname, "../../uploads"),
+    uploadsDir = uploadDir,
     tempRoot = os.tmpdir(),
     ttlMs = configuredTtlMs,
-    getPermanentNames = () => fileRepository.getStoredNames(),
+    getPermanentNames = () => process.env.NODE_ENV === "production" && isEphemeral
+        ? [] : fileRepository.getStoredNames(),
     sweepR2 = () => r2Service.sweep(),
     logger = appLogger,
 } = {}) => {

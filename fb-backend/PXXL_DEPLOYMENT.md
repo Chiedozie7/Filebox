@@ -10,7 +10,7 @@ against [pxxl.toml](pxxl.toml) before deploying:
 | Port | 5000; the server uses Pxxl's `PORT` if provided |
 | Install | Use the `installCommand` in `pxxl.toml`: npm install, virtualenv, Pxxl Python requirements, then `pdf2docx` without its pip-managed OpenCV dependency |
 | Build | Empty; this backend has no compilation step |
-| Start | `mkdir -p uploads && PATH=$PWD/.venv/bin:$PATH node src/server.js` |
+| Start | `mkdir -p "$UPLOAD_DIR" && PATH=$PWD/.venv/bin:$PATH node src/server.js` (`UPLOAD_DIR=/tmp/filebox-uploads` on Pxxl) |
 | HTTP health check | `GET /health` (cheap, not rate-limited or queued) |
 
 Pxxl's `node-npm:26` build currently installs Alpine Python 3.14.7. Its package
@@ -49,8 +49,9 @@ small 0.5-vCPU/512-MB instance's memory or time budget; review Pxxl's
 
 ## Runtime environment
 
-The non-secret defaults `NODE_ENV=production`, `FILE_STORAGE_MODE=r2`, and
-`SOFFICE_PATH=/usr/bin/soffice` are in `pxxl.toml`. Set these **server-only**
+The non-secret defaults `NODE_ENV=production`, `FILE_STORAGE_MODE=r2`,
+`UPLOAD_DIR=/tmp/filebox-uploads`, and `SOFFICE_PATH=/usr/bin/soffice` are in
+`pxxl.toml`. Set these **server-only**
 values in Pxxl Secrets, not in Git or frontend code:
 
 | Variable | Purpose |
@@ -64,9 +65,11 @@ values in Pxxl Secrets, not in Git or frontend code:
 
 The database must already contain the `files` table used by the repository;
 this repo has no migration command or schema file. R2 conversion calls do not
-write file records, but the cleanup sweep consults the table before deleting
-stale local files. If that lookup fails, local stale-file deletion is skipped
-to protect permanent uploads. Set `DATABASE_URL` for complete backend behavior.
+write file records. Cleanup consults the table before deleting stale files on
+durable local storage; if that lookup fails, local deletion is skipped to
+protect permanent uploads. Pxxl's ephemeral staging has no permanent uploads,
+so its cleanup does not need that lookup. Set `DATABASE_URL` for complete
+database-backed API behavior.
 
 Useful optional settings, with current defaults:
 
@@ -105,15 +108,17 @@ after processing, and outputs are removed by the 30-minute sweep. A Cloudflare
 R2 lifecycle rule for `temp/` is a coarse fallback during server outages. See
 [R2.md](R2.md) for the request flow and validation limits.
 
-The process must be able to write `uploads/` in its working directory even in
-R2 mode: remote inputs are staged there and outputs are uploaded from there.
-Python, OCR, Excel, and LibreOffice also write to the system temp directory
-(normally `/tmp`), including a LibreOffice profile under
-`/tmp/filebox-lo-profile`. The startup command creates `uploads/`; make sure
-the runtime user can write both locations. R2 mode does not need durable local
-storage for processing. Permanent `/files/upload` and local-mode outputs need
-a persistent volume if they must survive restarts/deployments; the current code
-uses the fixed `uploads/` path. Pxxl [supports mounted persistent volumes](https://docs.pxxl.app/projects/compute).
+`UPLOAD_DIR` defaults to the backend's `uploads/` directory for local
+development. On Pxxl, it points to writable `/tmp/filebox-uploads` for Multer
+uploads, R2 staging, generated outputs, and local cleanup. The startup command
+creates it. Python, OCR, Excel, and LibreOffice also write under `/tmp`,
+including a LibreOffice profile under `/tmp/filebox-lo-profile`. `/tmp` is
+ephemeral: files can disappear on restart or deployment, so local download
+links there are temporary. R2 outputs remain in R2. The legacy permanent
+`POST /files/upload` returns 503 in production when `UPLOAD_DIR` is under the
+system temporary directory, because its database record would otherwise point
+to an ephemeral file. For permanent local uploads in production, configure
+`UPLOAD_DIR` on a durable writable volume. Pxxl [supports mounted persistent volumes](https://docs.pxxl.app/projects/compute).
 
 OCR uses `tesseract.js`; arrange runtime access to its language data or a
 working cache for `eng` before relying on OCR. `/health` does not check R2,

@@ -1,4 +1,5 @@
 const path = require("path");
+const { uploadDir } = require("../config/uploadDir");
 const wordService = require("../services/wordService");
 const logger = require("../services/logger");
 
@@ -18,7 +19,7 @@ const convertWordToPdf = async (req, res) => {
             });
         }
 
-        const outputDir = "uploads";
+        const outputDir = uploadDir;
 
         const result = await wordService.convertWordToPdf(
             req.file.path,

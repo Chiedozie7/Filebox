@@ -1,9 +1,12 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
+const fsSync = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { Readable } = require("node:stream");
 
 process.chdir(path.resolve(__dirname, ".."));
+process.env.UPLOAD_DIR = fsSync.mkdtempSync(path.join(os.tmpdir(), "fileforge-r2-staging-"));
 process.env.FILE_STORAGE_MODE = "r2";
 process.env.R2_ACCOUNT_ID = "test-account";
 process.env.R2_BUCKET = "test-bucket";
@@ -68,6 +71,7 @@ const settings = {
 const r2 = createR2Service({ settings, client, sign });
 Object.assign(r2Module, r2);
 const app = require("../src/app");
+const { uploadDir } = require("../src/config/uploadDir");
 const jobQueue = require("../src/middleware/jobQueue");
 const fixtureDir = path.resolve(__dirname, "../../test-files");
 
@@ -108,7 +112,7 @@ const stage = async (base, name, type, bytes) => {
         const forged = { ...input, token: `${tokenData}.${tokenSignature[0] === "A" ? "B" : "A"}${tokenSignature.slice(1)}` };
         const invalid = await post(base, "/files/compress", { file: forged });
         assert.equal(invalid.status, 400);
-        const before = new Set(await fs.readdir("uploads"));
+        const before = new Set(await fs.readdir(uploadDir));
         const processed = await post(base, "/files/compress", { file: input });
         assert.equal(processed.status, 200);
         const body = await processed.json();
@@ -120,7 +124,7 @@ const stage = async (base, name, type, bytes) => {
         assert.equal(validKey(body.output.key, "output"), true);
         assert.equal(await sharp(objects.get(body.output.key).bytes).metadata().then(value => value.format), "png");
         await waitFor(() => !objects.has(input.key) && jobQueue.stats().heavy.active === 0);
-        assert.deepEqual(new Set(await fs.readdir("uploads")), before, "local staging and output removed");
+        assert.deepEqual(new Set(await fs.readdir(uploadDir)), before, "local staging and output removed");
 
         const refreshed = await post(base, "/files/r2/download-url", { object: body.output });
         assert.equal(refreshed.status, 200);
@@ -137,7 +141,7 @@ const stage = async (base, name, type, bytes) => {
         const failed = await post(base, "/files/word/to-pdf", { file: bad });
         assert.equal(failed.status, 400, "signature validation remains in force");
         await waitFor(() => !objects.has(bad.key));
-        assert.deepEqual(new Set(await fs.readdir("uploads")), before, "failed staging removed");
+        assert.deepEqual(new Set(await fs.readdir(uploadDir)), before, "failed staging removed");
 
         const jpeg = await fs.readFile(path.join(fixtureDir, "landscape.jpg"));
         const batchInputA = await stage(base, "landscape.jpg", "image/jpeg", jpeg);
@@ -173,7 +177,7 @@ const stage = async (base, name, type, bytes) => {
         assert.equal(batchBody.filesConverted, 2);
         assert.equal(objects.get(batchBody.output.key).bytes.subarray(0, 2).toString(), "PK");
         await waitFor(() => jobQueue.stats().heavy.active === 0);
-        assert.deepEqual(new Set(await fs.readdir("uploads")), before, "batch staging and intermediates removed");
+        assert.deepEqual(new Set(await fs.readdir(uploadDir)), before, "batch staging and intermediates removed");
 
         const sourcePdf = await fs.readFile(path.join(fixtureDir, "mixed-content.pdf"));
         const mergePdf = await stage(base, "mixed-content.pdf", "application/pdf", sourcePdf);
@@ -186,7 +190,7 @@ const stage = async (base, name, type, bytes) => {
         assert.equal(mergedPdf.getPageCount(), originalPdf.getPageCount() + 1);
         assert.deepEqual(mergedPdf.getPage(0).getSize(), originalPdf.getPage(0).getSize(), "PDF pages remain first");
         await waitFor(() => !objects.has(mergePdf.key) && !objects.has(mergeImage.key));
-        assert.deepEqual(new Set(await fs.readdir("uploads")), before, "mixed merge local files removed");
+        assert.deepEqual(new Set(await fs.readdir(uploadDir)), before, "mixed merge local files removed");
 
         const staleKey = `temp/input/${"b".repeat(32)}.pdf`;
         objects.set(staleKey, { bytes: Buffer.from("%PDF"), type: "application/pdf",
@@ -200,7 +204,7 @@ const stage = async (base, name, type, bytes) => {
         const mismatchResponse = await post(base, "/files/compress", { file: mismatched });
         assert.equal(mismatchResponse.status, 400);
         await waitFor(() => !objects.has(mismatched.key) && jobQueue.stats().heavy.active === 0);
-        assert.deepEqual(new Set(await fs.readdir("uploads")), before, "failed R2 download leaves no staging file");
+        assert.deepEqual(new Set(await fs.readdir(uploadDir)), before, "failed R2 download leaves no staging file");
 
         const outputFailureInput = await stage(base, "transparent.png", "image/png", png);
         failOutputUpload = true;
@@ -208,7 +212,7 @@ const stage = async (base, name, type, bytes) => {
         failOutputUpload = false;
         assert.equal(outputFailure.status, 500);
         await waitFor(() => !objects.has(outputFailureInput.key) && jobQueue.stats().heavy.active === 0);
-        assert.deepEqual(new Set(await fs.readdir("uploads")), before, "failed output upload removes local files");
+        assert.deepEqual(new Set(await fs.readdir(uploadDir)), before, "failed output upload removes local files");
         for (let i = 0; i < 20; i++) await post(base, "/files/word/to-pdf", {});
         const rateRejectedInput = await stage(base, "transparent.png", "image/png", png);
         const rateRejected = await post(base, "/files/ocr/to-word", { file: rateRejectedInput });
@@ -217,5 +221,6 @@ const stage = async (base, name, type, bytes) => {
         console.log("R2 signing, key, processing, cleanup, batch queue, and expiry checks passed");
     } finally {
         await new Promise(resolve => server.close(resolve));
+        if (path.dirname(uploadDir) === os.tmpdir()) await fs.rm(uploadDir, { recursive: true, force: true });
     }
 })().catch(error => { console.error(error); process.exitCode = 1; });

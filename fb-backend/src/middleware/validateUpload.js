@@ -7,6 +7,7 @@ const { PDFDocument } = require("pdf-lib");
 const imageService = require("../services/imageService");
 const temporaryFileCleanup = require("../services/temporaryFileCleanup");
 const limits = require("../config/fileLimits");
+const { uploadDir } = require("../config/uploadDir");
 
 const mimeByExt = {
     pdf: ["application/pdf"],
@@ -23,7 +24,7 @@ const policyStorage = (policy) => ({
         const extension = path.extname(file.originalname).toLowerCase().slice(1);
         const perFileLimit = typeof policy.maxFor === "function" ? policy.maxFor(extension) : policy.maxPerFile;
         const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
-        const destination = "uploads/";
+        const destination = uploadDir;
         const filePath = path.join(destination, filename);
         temporaryFileCleanup.registerInput(req, filePath);
         let size = 0;
@@ -47,14 +48,14 @@ const policyStorage = (policy) => ({
         });
         const abortUpload = () => file.stream.destroy(new Error("Upload aborted"));
         req.once("aborted", abortUpload);
-        pipeline(file.stream, limiter, fsSync.createWriteStream(filePath), async error => {
+        fs.mkdir(uploadDir, { recursive: true }).then(() => pipeline(file.stream, limiter, fsSync.createWriteStream(filePath), async error => {
             req.off("aborted", abortUpload);
             if (error) {
                 await fs.rm(filePath, { force: true }).catch(() => {});
                 return cb(error);
             }
             cb(null, { destination, filename, path: filePath, size });
-        });
+        })).catch(error => { req.off("aborted", abortUpload); cb(error); });
         if (req.aborted) abortUpload();
     },
     _removeFile(req, file, cb) {

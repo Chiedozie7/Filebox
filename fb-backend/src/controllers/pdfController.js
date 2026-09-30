@@ -1,4 +1,5 @@
 const path = require("path");
+const { uploadDir } = require("../config/uploadDir");
 const pdfService = require("../services/pdfService");
 const temporaryFileCleanup = require("../services/temporaryFileCleanup");
 const logger = require("../services/logger");
@@ -24,7 +25,7 @@ const convertPdfToWord = async (req, res) => {
             `converted-${Date.now()}.docx`;
 
         const outputPath = path.join(
-            "uploads",
+            uploadDir,
             outputName
         );
         temporaryFileCleanup.registerOutput(req, outputPath);
@@ -68,7 +69,7 @@ const convertPdfToExcel = async (req, res) => {
             `converted-${Date.now()}.xlsx`;
 
         const outputPath = path.join(
-            "uploads",
+            uploadDir,
             outputName
         );
         temporaryFileCleanup.registerOutput(req, outputPath);

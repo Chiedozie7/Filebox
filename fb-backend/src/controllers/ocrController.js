@@ -2,6 +2,7 @@ const ocrService = require("../services/ocrService");
 const imageService = require("../services/imageService");
 const fs = require("fs/promises");
 const path = require("path");
+const { uploadDir } = require("../config/uploadDir");
 const temporaryFileCleanup = require("../services/temporaryFileCleanup");
 const logger = require("../services/logger");
 
@@ -40,7 +41,7 @@ const convertOcrToWord = async (req, res) => {
 
         const lang = req.body.lang || "eng";
         const outputName = `ocr-${Date.now()}.docx`;
-        outputPath = path.join("uploads", outputName);
+        outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath, { discardOnSuccess: true });
         await ocrService.convertToWord(
             req.file.path,

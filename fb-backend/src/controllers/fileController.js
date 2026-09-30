@@ -11,6 +11,7 @@ const presentationService = require("../services/presentationService");
 const zipService = require("../services/zipService");
 const temporaryFileCleanup = require("../services/temporaryFileCleanup");
 const logger = require("../services/logger");
+const { uploadDir } = require("../config/uploadDir");
 
 
 const uploadFile = async (req, res) => {
@@ -58,7 +59,7 @@ const compressImage = async (req, res) => {
 
         const outputExtension = format === "jpeg" ? "jpg" : format;
         const outputName = `compressed-${Date.now()}.${outputExtension}`;
-        const outputPath = path.join("uploads", outputName);
+        const outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
 
         const compressionResult = await imageService.compressImage(
@@ -105,7 +106,7 @@ const resizeImage = async (req, res) => {
         }
 
         const outputName = `resized-${req.file.filename}`;
-        const outputPath = path.join("uploads", outputName);
+        const outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
 
         const resizeResult = await imageService.resizeImage(
@@ -158,7 +159,7 @@ const convertImage = async (req, res) => {
         const outputExtension = format === "jpeg" ? "jpg" : format;
 
         const outputName = `converted-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${outputExtension}`;
-        const outputPath = path.join("uploads", outputName);
+        const outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
 
         const conversionResult = await imageService.convertImage(
@@ -197,7 +198,7 @@ const compressPDF = async (req, res) => {
         }
 
         const outputName = `compressed-${Date.now()}.pdf`;
-        const outputPath = path.join("uploads", outputName);
+        const outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
         const compressionResult = await pdfService.compressPDF(
             req.file.path,
@@ -232,7 +233,7 @@ const unlockPDF = async (req, res) => {
         }
 
         const outputName = `unlocked-${Date.now()}.pdf`;
-        outputPath = path.join("uploads", outputName);
+        outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
         await pdfService.unlockPDF(req.file.path, outputPath, req.body.password || "");
         res.json({
@@ -295,7 +296,7 @@ const mergePDFs = async (req, res) => {
         }
 
         const outputName = `merged-${Date.now()}.pdf`;
-        const outputPath = path.join("uploads", outputName);
+        const outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
         const temporaryDir = await fs.promises.mkdtemp(
             path.join(os.tmpdir(), "fileforge-mixed-merge-")
@@ -378,7 +379,7 @@ const splitPDF = async (req, res) => {
             `split-${Date.now()}.pdf`;
 
         const outputPath = path.join(
-            "uploads",
+            uploadDir,
             outputName
         );
         temporaryFileCleanup.registerOutput(req, outputPath);
@@ -425,7 +426,7 @@ const convertWordToPdf = async (req, res) => {
             });
         }
 
-        const outputDir = "uploads";
+        const outputDir = uploadDir;
         temporaryFileCleanup.registerOutput(req, path.join(outputDir, `${path.parse(req.file.filename).name}.pdf`));
 
         const result =
@@ -464,7 +465,7 @@ const convertWordToExcel = async (req, res) => {
         }
 
         const outputName = `converted-${Date.now()}.xlsx`;
-        const outputPath = path.join("uploads", outputName);
+        const outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
         const result = await wordService.convertWordToExcel(
             req.file.path,
@@ -502,7 +503,7 @@ const convertExcelToPdf = async (req, res) => {
             });
         }
 
-        const outputDir = "uploads";
+        const outputDir = uploadDir;
         temporaryFileCleanup.registerOutput(req, path.join(outputDir, `${path.parse(req.file.filename).name}.pdf`));
 
         const result =
@@ -536,7 +537,7 @@ const convertExcelToWord = async (req, res) => {
         }
 
         const outputName = `converted-${Date.now()}.docx`;
-        const outputPath = path.join("uploads", outputName);
+        const outputPath = path.join(uploadDir, outputName);
         temporaryFileCleanup.registerOutput(req, outputPath);
         const result = await excelService.convertExcelToWord(req.file.path, outputPath);
         res.json({
@@ -557,7 +558,7 @@ const downloadFile = (req, res) => {
     try {
         // path.basename strips any directory traversal (../, absolute paths)
         const filename = path.basename(req.params.filename);
-        const filePath = path.join("uploads", filename);
+        const filePath = path.join(uploadDir, filename);
 
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({
@@ -627,11 +628,11 @@ const batchConvertFiles = async (req, res) => {
         for (const [index, file] of req.files.entries()) {
             const outputName =
                 `converted-${Date.now()}-${Math.round(Math.random() * 1e9)}.${outputExtension}`;
-            const outputPath = path.join("uploads", outputName);
+            const outputPath = path.join(uploadDir, outputName);
             temporaryFileCleanup.registerOutput(req, outputPath, { discardOnSuccess: true });
             const source = sources[index];
             if (["docx", "xlsx", "pptx"].includes(source) && outputFormat === "pdf") {
-                temporaryFileCleanup.registerOutput(req, path.join("uploads", `${path.parse(file.filename).name}.pdf`), { discardOnSuccess: true });
+                temporaryFileCleanup.registerOutput(req, path.join(uploadDir, `${path.parse(file.filename).name}.pdf`), { discardOnSuccess: true });
             }
             let result;
 
@@ -642,24 +643,24 @@ const batchConvertFiles = async (req, res) => {
             } else if (source === "pdf" && outputFormat === "xlsx") {
                 result = await pdfService.convertPdfToExcel(file.path, outputPath);
             } else if (source === "docx" && outputFormat === "pdf") {
-                result = await wordService.convertWordToPdf(file.path, "uploads");
+                result = await wordService.convertWordToPdf(file.path, uploadDir);
             } else if (source === "docx" && outputFormat === "xlsx") {
                 result = await wordService.convertWordToExcel(file.path, outputPath);
             } else if (source === "xlsx" && outputFormat === "pdf") {
-                result = await excelService.convertExcelToPdf(file.path, "uploads");
+                result = await excelService.convertExcelToPdf(file.path, uploadDir);
             } else if (source === "xlsx" && outputFormat === "docx") {
                 result = await excelService.convertExcelToWord(file.path, outputPath);
             } else if (source === "pdf" && outputFormat === "pptx") {
                 result = await presentationService.convertPdfToPptx(file.path, outputPath);
             } else if (source === "pptx" && outputFormat === "pdf") {
-                result = await presentationService.convertPptxToPdf(file.path, "uploads");
+                result = await presentationService.convertPptxToPdf(file.path, uploadDir);
             }
 
             convertedPaths.push(result?.outputPath || outputPath);
         }
 
         const zipName = `batch-${Date.now()}.zip`;
-        const zipPath = path.join("uploads", zipName);
+        const zipPath = path.join(uploadDir, zipName);
         temporaryFileCleanup.registerOutput(req, zipPath);
 
         await zipService.createZip(convertedPaths, zipPath);
@@ -731,7 +732,7 @@ const zipFiles = async (req, res) => {
         }
 
         const zipName = `files-${Date.now()}.zip`;
-        outputPath = path.join("uploads", zipName);
+        outputPath = path.join(uploadDir, zipName);
         temporaryFileCleanup.registerOutput(req, outputPath);
         await zipService.createZip(
             req.files.map((file) => file.path),

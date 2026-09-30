@@ -1,4 +1,5 @@
 const path = require("path");
+const { uploadDir } = require("../config/uploadDir");
 const crypto = require("crypto");
 const service = require("../services/presentationService");
 const cleanup = require("../services/temporaryFileCleanup");
@@ -10,11 +11,11 @@ const convert = (source, target) => async (req, res) => {
     }
     const name = source === "pptx" ? `${path.parse(req.file.filename).name}.pdf`
         : `converted-${crypto.randomUUID()}.pptx`;
-    const outputPath = path.join("uploads", name);
+    const outputPath = path.join(uploadDir, name);
     cleanup.registerOutput(req, outputPath);
     try {
         const result = source === "pptx"
-            ? await service.convertPptxToPdf(req.file.path, "uploads")
+            ? await service.convertPptxToPdf(req.file.path, uploadDir)
             : await service.convertPdfToPptx(req.file.path, outputPath);
         res.json({ message: `${source.toUpperCase()} converted to ${target.toUpperCase()} successfully`,
             original: req.file.filename, converted: name,

@@ -5,6 +5,7 @@ const config = require("../config/r2");
 const r2 = require("../services/r2Service");
 const { policyUpload, validateStoredFiles } = require("./validateUpload");
 const logger = require("../services/logger");
+const { uploadDir } = require("../config/uploadDir");
 
 const outputFields = ["compressed", "resized", "converted", "unlocked", "merged", "split", "zip"];
 const statusFor = (message) => /size limit|exceeds/i.test(message) ? 413 : 400;
@@ -80,11 +81,11 @@ const process = (policy, controller) => async (req, res, next) => {
     };
 
     try {
-        await fs.mkdir("uploads", { recursive: true });
+        await fs.mkdir(uploadDir, { recursive: true });
         const staged = [];
         for (const [index, payload] of req.remotePayloads.entries()) {
             const filename = `${crypto.randomBytes(16).toString("hex")}${path.extname(payload.name).toLowerCase()}`;
-            const filePath = path.join("uploads", filename);
+            const filePath = path.join(uploadDir, filename);
             localPaths.push(filePath);
             const maximum = typeof policy.maxFor === "function" ? policy.maxFor(path.extname(payload.name).slice(1).toLowerCase()) : policy.maxPerFile;
             await r2.downloadInput(req.remoteReferences[index], filePath, maximum);
@@ -111,7 +112,7 @@ const process = (policy, controller) => async (req, res, next) => {
                 return res;
             }
             const name = path.basename(body[field]);
-            responsePromise = publish(path.join("uploads", name), name, body);
+            responsePromise = publish(path.join(uploadDir, name), name, body);
             return res;
         };
         res.download = (filePath, name) => {

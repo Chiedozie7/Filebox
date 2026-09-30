@@ -3,6 +3,7 @@ const { policies, policyUpload } = require("../middleware/validateUpload");
 const { light, heavy, veryHeavy, mergeLimiter, batchLimiter } = require("../middleware/rateLimits");
 const jobQueue = require("../middleware/jobQueue");
 const r2Processing = require("../middleware/r2Processing");
+const { isEphemeral } = require("../config/uploadDir");
 const { trackProcessing, retryBusyInputs } = require("../services/temporaryFileCleanup");
 const {
     uploadFile, getFiles, compressImage, resizeImage, convertImage, compressPDF,
@@ -27,7 +28,12 @@ const pptxVeryHeavy = (req, res, next) => veryHeavy(req, res, (error) => {
 });
 router.post("/r2/upload-url", light, createUploadUrl);
 router.post("/r2/download-url", light, createDownloadUrl);
-router.post("/upload", light, policyUpload({ ...policies.zip, field: "file", maxCount: 1 }), trackProcessing(uploadFile));
+router.post("/upload", light, (req, res, next) => {
+    if (process.env.NODE_ENV === "production" && isEphemeral) {
+        return res.status(503).json({ error: "Permanent uploads require durable local storage" });
+    }
+    next();
+}, policyUpload({ ...policies.zip, field: "file", maxCount: 1 }), trackProcessing(uploadFile));
 router.post("/compress", heavy, ...queued(policies.images, jobQueue.heavy, compressImage));
 router.post("/resize", heavy, ...queued(policies.images, jobQueue.heavy, resizeImage));
 router.post("/convert", heavy, ...queued(policies.images, jobQueue.heavy, convertImage));
