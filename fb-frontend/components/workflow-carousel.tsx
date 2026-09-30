@@ -39,7 +39,18 @@ export function WorkflowCarousel() {
     }
     viewport.addEventListener("scroll", scheduleSync, { passive: true });
     window.addEventListener("resize", scheduleSync);
-    scheduleSync();
+    if (window.matchMedia("(min-width: 1051px)").matches) {
+      const second = viewport.children[1];
+      if (second) {
+        const viewportCenter = viewport.getBoundingClientRect().left + viewport.clientWidth / 2;
+        const bounds = second.getBoundingClientRect();
+        viewport.scrollLeft += bounds.left + bounds.width / 2 - viewportCenter;
+        activeIndexRef.current = 1;
+        setActiveIndex(1);
+      }
+    } else {
+      scheduleSync();
+    }
     return () => {
       cancelAnimationFrame(frame);
       viewport.removeEventListener("scroll", scheduleSync);
@@ -55,7 +66,8 @@ export function WorkflowCarousel() {
     if (!slide) return;
     const viewportCenter = viewport.getBoundingClientRect().left + viewport.clientWidth / 2;
     const bounds = slide.getBoundingClientRect();
-    viewport.scrollLeft += bounds.left + bounds.width / 2 - viewportCenter;
+    const left = viewport.scrollLeft + bounds.left + bounds.width / 2 - viewportCenter;
+    viewport.scrollTo({ left, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
   return <div className="workflow-carousel">
     <div className="carousel-top"><span>{String(activeIndex + 1).padStart(2, "0")} / {String(workflows.length).padStart(2, "0")}</span>

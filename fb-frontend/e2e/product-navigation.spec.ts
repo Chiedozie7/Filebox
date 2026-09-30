@@ -37,7 +37,7 @@ test("mobile navigation offers searchable, collapsible tool groups", async ({ pa
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
-  await page.locator(".mobile-sheet summary").filter({ hasText: "PDF" }).click();
+  await page.getByRole("button", { name: "PDF", exact: true }).click();
   await page.getByRole("navigation", { name: "Mobile navigation" }).getByRole("link", { name: "Merge to PDF" }).click();
   await expect(page).toHaveURL(/\/tools\/pdf-merge$/);
   await expect(page.locator(".mobile-sheet")).toHaveCount(0);
