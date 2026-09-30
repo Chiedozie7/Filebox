@@ -5,13 +5,13 @@ packageManager = "npm"
 nodeVersion = "22"
 runtimeVersion = "22"
 port = 5000
-installCommand = "npm ci --omit=dev && python3 -m virtualenv --python=python3 .venv && .venv/bin/python -m pip install --no-cache-dir -r requirements-production.txt"
+installCommand = "npm ci --omit=dev && python3 -m virtualenv --system-site-packages --python=python3 .venv && .venv/bin/python -m pip install --no-cache-dir -r requirements-pxxl.txt && .venv/bin/python -m pip install --no-cache-dir --no-deps pdf2docx==0.5.13 && .venv/bin/python -c 'import cv2, pdf2docx; print(cv2.__version__)'"
 buildCommand = ""
 startCommand = "mkdir -p uploads && PATH=$PWD/.venv/bin:$PATH node src/server.js"
 
 [packages]
-build = ["python3", "py3-pip", "py3-virtualenv"]
-runtime = ["python3", "libreoffice-common", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress"]
+build = ["python3", "py3-pip", "py3-virtualenv", "py3-opencv"]
+runtime = ["python3", "py3-opencv", "libreoffice-common", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress"]
 
 [env]
 NODE_ENV = "production"

@@ -8,33 +8,42 @@ against [pxxl.toml](pxxl.toml) before deploying:
 | --- | --- |
 | Runtime | Node.js 22, npm, one instance |
 | Port | 5000; the server uses Pxxl's `PORT` if provided |
-| Install | `npm ci --omit=dev && python3 -m virtualenv --python=python3 .venv && .venv/bin/python -m pip install --no-cache-dir -r requirements-production.txt` |
+| Install | Use the `installCommand` in `pxxl.toml`: npm install, virtualenv, Pxxl Python requirements, then `pdf2docx` without its pip-managed OpenCV dependency |
 | Build | Empty; this backend has no compilation step |
 | Start | `mkdir -p uploads && PATH=$PWD/.venv/bin:$PATH node src/server.js` |
 | HTTP health check | `GET /health` (cheap, not rate-limited or queued) |
 
-Pxxl's `node-npm:26` build has an Alpine-style package repository. The build
-plan requests `python3`, `py3-pip`, and `py3-virtualenv`. It uses the packaged
-`virtualenv` module to create `.venv` with pip, then installs
-`requirements-production.txt` into that environment. The runtime requests
-`python3`, `libreoffice-common`, `libreoffice-writer`, `libreoffice-calc`, and
-`libreoffice-impress`. Alpine's `libreoffice-common` provides
-`/usr/bin/soffice`. The Python requirements include `pdf2docx`, `pdfplumber`,
-`python-docx`, PyMuPDF, Pillow, `python-pptx`, NumPy, and
-`opencv-python-headless`. The latter supplies `cv2` for OCR table detection;
-the headless package avoids a GUI dependency. Every conversion service invokes
-`python`, so the start command puts the built virtual environment first on
-`PATH`. `SOFFICE_PATH=/usr/bin/soffice` replaces the Windows-only default.
+Pxxl's `node-npm:26` build currently installs Alpine Python 3.14.7. Its package
+repository has no documented Python 3.12/3.13 selector for this build plan.
+The build requests `python3`, `py3-pip`, `py3-virtualenv`, and `py3-opencv`;
+the runtime also requests `py3-opencv`. The latter is Alpine's prebuilt OpenCV
+4.13.0 package for Python 3.14 and supplies `cv2` for OCR table detection.
+Pxxl creates `.venv` with `--system-site-packages` so it can import that
+prebuilt package. It installs [requirements-pxxl.txt](requirements-pxxl.txt),
+then `pdf2docx==0.5.13` with `--no-deps` because pip cannot equate Alpine's
+`py3-opencv` with the `opencv-python-headless` package name. The Pxxl file
+lists pdf2docx's other dependencies, including `fonttools` and `fire`. The
+install command checks that both `cv2` and `pdf2docx` import. The normal
+`requirements-production.txt` and `requirements-presentation.txt` remain
+unchanged for non-Pxxl environments; their OpenCV range needs no additional
+version pin.
+
+The runtime also requests `python3`, `libreoffice-common`,
+`libreoffice-writer`, `libreoffice-calc`, and `libreoffice-impress`. Alpine's
+`libreoffice-common` provides `/usr/bin/soffice`. Every conversion service
+invokes `python`, so the start command puts the built virtual environment first
+on `PATH`. `SOFFICE_PATH=/usr/bin/soffice` replaces the Windows-only default.
 
 Pxxl [documents these `pxxl.toml` build and package fields](https://docs.pxxl.app/api/pxxl-toml).
 The [Alpine package index](https://pkgs.alpinelinux.org/) confirms these package
 names. If the builder does not carry the generated `.venv` into the final
 runtime, a compatible builder or custom image is still needed. Confirm both
-`python` and `/usr/bin/soffice` exist in the final runtime. PyPI's
-`opencv-python-headless` release has glibc Linux wheels but no musl wheel;
-on Alpine, installing `requirements-production.txt` may next attempt a large
-OpenCV source build. That is a separate possible blocker to verify in the
-next Pxxl build. LibreOffice startup/conversion can also exceed a
+`python`, `cv2`, and `/usr/bin/soffice` exist in the final runtime. PyPI's
+`opencv-python-headless` releases have glibc Linux wheels but no musl wheel;
+pinning Python to 3.12 or 3.13 on Alpine would still trigger a source build.
+The Alpine package is a prebuilt binary package, not a PyPI wheel. If Pxxl
+requires an actual PyPI OpenCV wheel, it needs a glibc-based build image.
+LibreOffice startup/conversion can also exceed a
 small 0.5-vCPU/512-MB instance's memory or time budget; review Pxxl's
 [compute settings](https://docs.pxxl.app/projects/compute) before live traffic.
 
