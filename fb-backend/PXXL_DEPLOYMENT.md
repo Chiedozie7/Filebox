@@ -10,7 +10,7 @@ against [pxxl.toml](pxxl.toml) before deploying:
 | Port | 5000; the server uses Pxxl's `PORT` if provided |
 | Install | Use the `installCommand` in `pxxl.toml`: npm install, virtualenv, Pxxl Python requirements, then `pdf2docx` without its pip-managed OpenCV dependency |
 | Build | Empty; this backend has no compilation step |
-| Start | `mkdir -p "$UPLOAD_DIR" && PATH=$PWD/.venv/bin:$PATH node src/server.js` (`UPLOAD_DIR=/tmp/filebox-uploads` on Pxxl) |
+| Start | `mkdir -p /tmp/filebox-uploads && UPLOAD_DIR=/tmp/filebox-uploads PATH=$PWD/.venv/bin:$PATH node src/server.js` |
 | HTTP health check | `GET /health` (cheap, not rate-limited or queued) |
 
 Pxxl's `node-npm:26` build currently installs Alpine Python 3.14.7. Its package
