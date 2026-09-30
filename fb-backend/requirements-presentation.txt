@@ -2,3 +2,4 @@
 python-pptx==1.0.2
 PyMuPDF>=1.24.2,<2
 Pillow>=10,<13
+opencv-python-headless>=4.8,<5
