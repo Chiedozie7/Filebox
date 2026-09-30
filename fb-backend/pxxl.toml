@@ -1,0 +1,19 @@
+[build]
+language = "javascript"
+framework = "express"
+packageManager = "npm"
+nodeVersion = "22"
+runtimeVersion = "22"
+port = 5000
+installCommand = "npm ci --omit=dev && python3 -m venv .venv && .venv/bin/python -m pip install --no-cache-dir -r requirements-production.txt"
+buildCommand = ""
+startCommand = "mkdir -p uploads && PATH=$PWD/.venv/bin:$PATH node src/server.js"
+
+[packages]
+build = ["python3", "python3-pip", "python3-venv"]
+runtime = ["python3", "libreoffice", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress"]
+
+[env]
+NODE_ENV = "production"
+FILE_STORAGE_MODE = "r2"
+SOFFICE_PATH = "/usr/bin/soffice"

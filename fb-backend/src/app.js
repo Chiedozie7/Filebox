@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const { createCorsOptions } = require("./config/cors");
 
 const fileRoutes = require("./routes/fileRoutes");
 const { trustedProxyHops } = require("./middleware/rateLimits");
@@ -11,7 +12,13 @@ const app = express();
 if (trustedProxyHops) app.set("trust proxy", trustedProxyHops);
 
 app.use(httpLogger);
-app.use(cors());
+app.use(cors(createCorsOptions()));
+app.use((error, req, res, next) => {
+    if (error.code === "CORS_ORIGIN_DENIED") {
+        return res.status(403).json({ error: "Origin not allowed" });
+    }
+    next(error);
+});
 app.use(express.json());
 
 app.get("/health", (req, res) => {
