@@ -8,27 +8,33 @@ against [pxxl.toml](pxxl.toml) before deploying:
 | --- | --- |
 | Runtime | Node.js 22, npm, one instance |
 | Port | 5000; the server uses Pxxl's `PORT` if provided |
-| Install | `npm ci --omit=dev && python3 -m venv .venv && .venv/bin/python -m pip install --no-cache-dir -r requirements-production.txt` |
+| Install | `npm ci --omit=dev && python3 -m virtualenv --python=python3 .venv && .venv/bin/python -m pip install --no-cache-dir -r requirements-production.txt` |
 | Build | Empty; this backend has no compilation step |
 | Start | `mkdir -p uploads && PATH=$PWD/.venv/bin:$PATH node src/server.js` |
 | HTTP health check | `GET /health` (cheap, not rate-limited or queued) |
 
-The build plan requests `python3`, `python3-pip`, and `python3-venv` during
-installation, and Python 3 plus LibreOffice Writer, Calc, and Impress in the
-runtime. The Python requirements include `pdf2docx`, `pdfplumber`,
+Pxxl's `node-npm:26` build has an Alpine-style package repository. The build
+plan requests `python3`, `py3-pip`, and `py3-virtualenv`. It uses the packaged
+`virtualenv` module to create `.venv` with pip, then installs
+`requirements-production.txt` into that environment. The runtime requests
+`python3`, `libreoffice-common`, `libreoffice-writer`, `libreoffice-calc`, and
+`libreoffice-impress`. Alpine's `libreoffice-common` provides
+`/usr/bin/soffice`. The Python requirements include `pdf2docx`, `pdfplumber`,
 `python-docx`, PyMuPDF, Pillow, `python-pptx`, NumPy, and
 `opencv-python-headless`. The latter supplies `cv2` for OCR table detection;
 the headless package avoids a GUI dependency. Every conversion service invokes
 `python`, so the start command puts the built virtual environment first on
 `PATH`. `SOFFICE_PATH=/usr/bin/soffice` replaces the Windows-only default.
 
-Pxxl [documents these `pxxl.toml` build and package fields](https://docs.pxxl.app/api/pxxl-toml),
-but system package names depend on the buildpack base image. The package list
-above uses Debian package names. If the selected Node builder uses Alpine or
-does not carry the generated `.venv` into the final runtime, this plan will
-need a compatible builder or a custom image. Confirm both `python` and
-`/usr/bin/soffice` exist in the final runtime; a successful Node install alone
-does not establish that. LibreOffice startup/conversion can also exceed a
+Pxxl [documents these `pxxl.toml` build and package fields](https://docs.pxxl.app/api/pxxl-toml).
+The [Alpine package index](https://pkgs.alpinelinux.org/) confirms these package
+names. If the builder does not carry the generated `.venv` into the final
+runtime, a compatible builder or custom image is still needed. Confirm both
+`python` and `/usr/bin/soffice` exist in the final runtime. PyPI's
+`opencv-python-headless` release has glibc Linux wheels but no musl wheel;
+on Alpine, installing `requirements-production.txt` may next attempt a large
+OpenCV source build. That is a separate possible blocker to verify in the
+next Pxxl build. LibreOffice startup/conversion can also exceed a
 small 0.5-vCPU/512-MB instance's memory or time budget; review Pxxl's
 [compute settings](https://docs.pxxl.app/projects/compute) before live traffic.
 
