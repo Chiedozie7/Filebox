@@ -8,9 +8,11 @@ const logger = require("./logger");
 
 const execFileAsync = util.promisify(execFile);
 
-const SOFFICE_PATH =
-    process.env.SOFFICE_PATH ||
-    "C:\\Program Files\\LibreOffice\\program\\soffice.exe";
+const resolveSofficePath = (configuredPath = process.env.SOFFICE_PATH, platform = process.platform) =>
+    configuredPath?.trim() || (platform === "win32"
+        ? "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
+        : platform === "linux" ? "/usr/bin/soffice" : "soffice");
+const sofficePath = resolveSofficePath();
 
 /**
  * Converts any LibreOffice-supported document (docx, xlsx, pptx, etc.)
@@ -30,7 +32,7 @@ const WARMUP_TIMEOUT_MS = 35000;
 const performConversion = async (inputPath, outputDir, { timeout = CONVERSION_TIMEOUT_MS, signal, warmup = false } = {}) => {
     try {
         await execFileAsync(
-            SOFFICE_PATH,
+            sofficePath,
             [
                 `-env:UserInstallation=${PROFILE_URI}`,
                 "--headless",
@@ -136,4 +138,6 @@ const warmUp = () => {
 module.exports = {
     convertToPdf,
     warmUp,
+    resolveSofficePath,
+    sofficePath,
 };

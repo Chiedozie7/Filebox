@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     logger.info("server_started", { port: PORT, environment: process.env.NODE_ENV || "development" });
+    logger.info("libreoffice_executable_resolved", { sofficePath: officeConversionService.sofficePath });
     if (process.env.NODE_ENV !== "production") {
         logger.info("storage_mode_resolved", { mode: storageConfig.mode });
     }

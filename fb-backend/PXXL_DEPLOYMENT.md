@@ -10,7 +10,7 @@ against [pxxl.toml](pxxl.toml) before deploying:
 | Port | 5000; the server uses Pxxl's `PORT` if provided |
 | Install | Use the `installCommand` in `pxxl.toml`: npm install, virtualenv, Pxxl Python requirements, then `pdf2docx` without its pip-managed OpenCV dependency |
 | Build | Empty; this backend has no compilation step |
-| Start | `mkdir -p /tmp/filebox-uploads && UPLOAD_DIR=/tmp/filebox-uploads PATH=$PWD/.venv/bin:$PATH node src/server.js` |
+| Start | `mkdir -p /tmp/filebox-uploads && UPLOAD_DIR=/tmp/filebox-uploads SOFFICE_PATH=/usr/bin/soffice TRUST_PROXY_HOPS=1 PATH=$PWD/.venv/bin:$PATH node src/server.js` |
 | HTTP health check | `GET /health` (cheap, not rate-limited or queued) |
 
 Pxxl's `node-npm:26` build currently installs Alpine Python 3.14.7. Its package
@@ -33,6 +33,9 @@ The runtime also requests `python3`, `libreoffice-common`,
 `libreoffice-common` provides `/usr/bin/soffice`. Every conversion service
 invokes `python`, so the start command puts the built virtual environment first
 on `PATH`. `SOFFICE_PATH=/usr/bin/soffice` replaces the Windows-only default.
+The start command passes `SOFFICE_PATH` and `TRUST_PROXY_HOPS=1` directly to
+Node because Pxxl's `[env]` values have not consistently reached the runtime.
+Startup logs the selected LibreOffice executable path.
 
 Pxxl [documents these `pxxl.toml` build and package fields](https://docs.pxxl.app/api/pxxl-toml).
 The [Alpine package index](https://pkgs.alpinelinux.org/) confirms these package
@@ -77,7 +80,7 @@ Useful optional settings, with current defaults:
 | --- | --- |
 | `FILE_CLEANUP_TTL_MINUTES` | `30`; local outputs and R2 objects |
 | `R2_UPLOAD_URL_SECONDS`, `R2_DOWNLOAD_URL_SECONDS` | `300` each |
-| `TRUST_PROXY_HOPS` | `0`; set to the verified number of trusted Pxxl proxy hops (often `1`) so per-IP limits use the client IP |
+| `TRUST_PROXY_HOPS` | `0` locally; the Pxxl start command sets `1` for one trusted proxy hop so per-IP limits use the client IP. Adjust only if Pxxl's proxy topology differs. |
 | `JOB_QUEUE_HEAVY_CONCURRENCY`, `JOB_QUEUE_VERY_HEAVY_CONCURRENCY`, `JOB_QUEUE_MAX_WAITING` | `2`, `1`, `10`; keep conservative on small instances |
 | `RATE_LIMIT_LIGHT_MAX`, `RATE_LIMIT_HEAVY_MAX`, `RATE_LIMIT_VERY_HEAVY_MAX` | `60`/minute, `5`/10 minutes, `3`/10 minutes per IP |
 | `FILE_LIMIT_*` | Configurable size/count/page limits in `src/config/fileLimits.js`; leave defaults unless capacity is measured |

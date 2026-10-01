@@ -21,6 +21,9 @@ childProcess.execFile = (...args) => {
 fs.existsSync = file => String(file).endsWith("office-queue-test.pdf") ||
     String(file).endsWith("warmup.pdf") || originalExists(file);
 const office = require("../src/services/officeConversionService");
+assert.equal(office.resolveSofficePath("/usr/bin/soffice", "win32"), "/usr/bin/soffice", "environment override wins");
+assert.equal(office.resolveSofficePath("", "linux"), "/usr/bin/soffice", "Linux fallback");
+assert.equal(office.resolveSofficePath("", "win32"), "C:\\Program Files\\LibreOffice\\program\\soffice.exe", "Windows fallback");
 
 const waitForCall = async (count) => {
     const deadline = Date.now() + 3000;
@@ -75,6 +78,7 @@ const waitForCall = async (count) => {
         assert.equal(calls[7][2].timeout, 120000);
         calls[7].at(-1)(null, "", "");
         await afterTimeout;
+        assert.ok(calls.every(call => call[0] === office.sofficePath), "warm-up and conversions use the same executable");
         console.log("Office warm-up preemption, timeout, queue release, and user timeouts passed");
     } finally {
         childProcess.execFile = originalExec;
