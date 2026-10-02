@@ -20,6 +20,14 @@ const normalizeError = (error) => {
 
 const sanitize = (value, key = "", depth = 0) => {
     if (SECRET_FIELD.test(key)) return "[REDACTED]";
+    if (key === "allowedOrigins" && Array.isArray(value)) return value.slice(0, 20).map(origin => {
+        try {
+            if (typeof origin !== "string") return "[REDACTED]";
+            const parsed = new URL(origin);
+            return ["http:", "https:"].includes(parsed.protocol) && parsed.origin === origin
+                ? origin : "[REDACTED]";
+        } catch { return "[REDACTED]"; }
+    });
     if (key === "error") return normalizeError(value);
     if (value instanceof Error) return normalizeError(value);
     if (typeof value === "string") return redactText(value);

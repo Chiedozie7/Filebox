@@ -10,7 +10,7 @@ against [pxxl.toml](pxxl.toml) before deploying:
 | Port | 5000; the server uses Pxxl's `PORT` if provided |
 | Install | Use the `installCommand` in `pxxl.toml`: npm install, virtualenv, Pxxl Python requirements, then `pdf2docx` without its pip-managed OpenCV dependency |
 | Build | Empty; this backend has no compilation step |
-| Start | `mkdir -p /tmp/filebox-uploads && UPLOAD_DIR=/tmp/filebox-uploads SOFFICE_PATH=/usr/bin/soffice TRUST_PROXY_HOPS=1 PATH=$PWD/.venv/bin:$PATH node src/server.js` |
+| Start | `mkdir -p /tmp/filebox-uploads && NODE_ENV=production CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://filebox-yt.vercel.app} UPLOAD_DIR=/tmp/filebox-uploads SOFFICE_PATH=/usr/bin/soffice TRUST_PROXY_HOPS=1 PATH=$PWD/.venv/bin:$PATH node src/server.js` |
 | HTTP health check | `GET /health` (cheap, not rate-limited or queued) |
 
 Pxxl's `node-npm:26` build currently installs Alpine Python 3.14.7. Its package
@@ -94,7 +94,9 @@ protection are in memory per process.
 Set `CORS_ALLOWED_ORIGINS` in Pxxl Secrets to a comma-separated list of exact
 frontend origins, for example `https://<your-deployed-frontend-host>`. Include
 the scheme and hostname, with no path. Production allows only those origins;
-an empty setting denies cross-origin browser requests. Development also
+the Pxxl start command defaults an unset/empty value to
+`https://filebox-yt.vercel.app`. The `cors_allowed_origins_resolved` startup log
+shows the effective list without logging credentials or signed URLs. Development also
 allows localhost and loopback on ports 3000 and 3001. Requests without an
 `Origin` header remain available for command-line and server-to-server clients.
 An unexpected browser origin receives JSON `403 {"error":"Origin not allowed"}`.

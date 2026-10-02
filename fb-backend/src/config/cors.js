@@ -18,13 +18,17 @@ const parseOrigins = (value = "") => value.split(",").map(value => value.trim())
     return parsed.origin;
 });
 
-const createCorsOptions = ({
+const resolveAllowedOrigins = ({
     environment = process.env.NODE_ENV || "development",
     allowedOrigins = process.env.CORS_ALLOWED_ORIGINS || "",
 } = {}) => {
     const origins = new Set(parseOrigins(allowedOrigins));
     if (environment !== "production") LOCAL_FRONTEND_ORIGINS.forEach(origin => origins.add(origin));
+    return [...origins];
+};
 
+const createCorsOptions = (options = {}) => {
+    const origins = new Set(resolveAllowedOrigins(options));
     return {
         origin(origin, callback) {
             if (!origin || origins.has(origin)) return callback(null, true);
@@ -41,4 +45,4 @@ const createCorsOptions = ({
     };
 };
 
-module.exports = { createCorsOptions, LOCAL_FRONTEND_ORIGINS };
+module.exports = { createCorsOptions, resolveAllowedOrigins, LOCAL_FRONTEND_ORIGINS };
