@@ -11,7 +11,7 @@ startCommand = "mkdir -p /tmp/filebox-uploads && NODE_ENV=production CORS_ALLOWE
 
 [packages]
 build = ["python3", "py3-pip", "py3-virtualenv", "py3-opencv"]
-runtime = ["python3", "py3-opencv", "libreoffice-common", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress"]
+runtime = ["python3", "py3-opencv", "libreoffice-common", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress", "font-liberation", "font-dejavu", "font-noto"]
 
 [env]
 NODE_ENV = "production"

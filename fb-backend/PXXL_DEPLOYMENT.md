@@ -29,8 +29,10 @@ unchanged for non-Pxxl environments; their OpenCV range needs no additional
 version pin.
 
 The runtime also requests `python3`, `libreoffice-common`,
-`libreoffice-writer`, `libreoffice-calc`, and `libreoffice-impress`. Alpine's
-`libreoffice-common` provides `/usr/bin/soffice`. Every conversion service
+`libreoffice-writer`, `libreoffice-calc`, `libreoffice-impress`,
+`font-liberation`, `font-dejavu`, and `font-noto`. These fonts provide common
+LibreOffice substitutes and broader character coverage in generated PDFs.
+Alpine's `libreoffice-common` provides `/usr/bin/soffice`. Every conversion service
 invokes `python`, so the start command puts the built virtual environment first
 on `PATH`. `SOFFICE_PATH=/usr/bin/soffice` replaces the Windows-only default.
 The start command passes `SOFFICE_PATH` and `TRUST_PROXY_HOPS=1` directly to
